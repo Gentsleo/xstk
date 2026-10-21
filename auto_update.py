@@ -11,8 +11,7 @@ import sqlite3
 import datetime
 import urllib.request
 from bs4 import BeautifulSoup
-
-BASE_DIR = "/home/tringuyen/xstk"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "vietlott_535.db")
 CSV_PATH = os.path.join(BASE_DIR, "vietlott_535.csv")
 JSON_PATH = os.path.join(BASE_DIR, "vietlott_535.json")

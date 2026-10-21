@@ -120,8 +120,9 @@ def main():
     duration = time.time() - start_time
     print(f"[*] Đã cào xong {len(sorted_draws)} kỳ quay trong {duration:.2f}s!")
     
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     # Save CSV
-    csv_file = "/home/tringuyen/xstk/vietlott_535.csv"
+    csv_file = os.path.join(BASE_DIR, "vietlott_535.csv")
     fieldnames = ["draw_id", "draw_code", "date", "num1", "num2", "num3", "num4", "num5", "special", "numbers_str"]
     with open(csv_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -130,13 +131,13 @@ def main():
     print(f"[✓] Đã lưu CSV: {csv_file}")
     
     # Save JSON
-    json_file = "/home/tringuyen/xstk/vietlott_535.json"
+    json_file = os.path.join(BASE_DIR, "vietlott_535.json")
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(sorted_draws, f, ensure_ascii=False, indent=2)
     print(f"[✓] Đã lưu JSON: {json_file}")
     
     # Save SQLite
-    db_file = "/home/tringuyen/xstk/vietlott_535.db"
+    db_file = os.path.join(BASE_DIR, "vietlott_535.db")
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
     cur.execute("DROP TABLE IF EXISTS draws")

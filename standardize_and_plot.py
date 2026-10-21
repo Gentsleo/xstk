@@ -6,8 +6,8 @@ import os
 import math
 import csv
 from collections import Counter
-
-CHARTS_DIR = "/home/tringuyen/xstk/charts"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CHARTS_DIR = os.path.join(BASE_DIR, "charts")
 os.makedirs(CHARTS_DIR, exist_ok=True)
 
 class MathMCPClient:
@@ -73,7 +73,7 @@ def main():
     mcp = MathMCPClient()
     
     # 1. Đọc dữ liệu từ SQLite
-    conn = sqlite3.connect("/home/tringuyen/xstk/vietlott_535.db")
+    conn = sqlite3.connect(os.path.join(BASE_DIR, "vietlott_535.db"))
     cur = conn.cursor()
     rows = cur.execute("SELECT draw_id, draw_code, date, num1, num2, num3, num4, num5, special, numbers_str FROM draws ORDER BY draw_id ASC").fetchall()
     conn.close()
@@ -128,7 +128,7 @@ def main():
         })
         
     # Lưu bảng chuẩn hóa
-    std_csv_path = "/home/tringuyen/xstk/vietlott_535_standardized.csv"
+    std_csv_path = os.path.join(BASE_DIR, "vietlott_535_standardized.csv")
     with open(std_csv_path, "w", newline="", encoding="utf-8") as f:
         fieldnames = ["draw_id", "draw_code", "date", "num1", "num2", "num3", "num4", "num5", "special", "sum_val", "z_score_sum", "odd_count", "even_count", "high_count", "low_count", "numbers_str"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -172,8 +172,7 @@ def main():
             "pct": round(cnt / N_draws * 100, 2),
             "status": status
         })
-        
-    freq_csv_path = "/home/tringuyen/xstk/vietlott_535_frequency_stats.csv"
+    freq_csv_path = os.path.join(BASE_DIR, "vietlott_535_frequency_stats.csv")
     with open(freq_csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["ball", "count", "expected", "deviation", "z_score", "pct", "status"])
         writer.writeheader()

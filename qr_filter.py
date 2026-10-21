@@ -5,8 +5,9 @@ import random
 import argparse
 import sqlite3
 from collections import Counter
-
-DB_PATH = "/home/tringuyen/xstk/vietlott_535.db"
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "vietlott_535.db")
 
 # Vector trung bình thực nghiệm và ma trận nghịch đảo hiệp phương sai (k=5 bậc tự do)
 # Được tính toán chuẩn xác từ 954 kỳ quay thực tế của Vietlott Lotto 5/35

@@ -1,8 +1,12 @@
 import json
 import os
 
-with open("/home/tringuyen/xstk/vietlott_535.json", "r", encoding="utf-8") as f:
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(BASE_DIR, "vietlott_535.json"), "r", encoding="utf-8") as f:
     draws_data = json.load(f)
+
+total_draws = len(draws_data)
 
 html_content = f"""<!DOCTYPE html>
 <html lang="vi" class="dark">
@@ -72,10 +76,13 @@ html_content = f"""<!DOCTYPE html>
                     Mô hình dung sai mã QR (Typical Set) kết hợp Khoảng cách Mahalanobis & Shannon Gap Entropy
                 </p>
             </div>
-            <div class="flex items-center gap-3">
-                <span id="headerStatus" class="px-3 py-1 bg-green-900/40 text-green-400 border border-green-700/50 rounded-full text-xs font-semibold">
-                    ● 954 Kỳ Quay Lịch Sử
+            <div class="flex flex-wrap items-center gap-3">
+                <span id="headerStatus" class="px-3 py-1.5 bg-green-900/40 text-green-400 border border-green-700/50 rounded-full text-xs font-semibold">
+                    ● <span id="headerCount">{total_draws}</span> Kỳ Quay Lịch Sử
                 </span>
+                <button onclick="syncLatestDraws()" id="btnSync" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold transition flex items-center gap-1.5 shadow">
+                    🔄 Cập Nhật Kỳ Mới
+                </button>
                 <a href="https://github.com/Gentsleo/xstk" target="_blank" class="px-4 py-2 bg-brand-border hover:bg-slate-700 rounded-lg text-sm font-bold transition flex items-center gap-2">
                     GitHub Repo
                 </a>
@@ -91,7 +98,7 @@ html_content = f"""<!DOCTYPE html>
                 ⚡ Gợi Ý Bộ Số Chuẩn (SQS ≥ 80)
             </button>
             <button onclick="switchTab('tab-history')" id="btn-history" class="tab-btn px-5 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
-                📊 Tra Cứu Lịch Sử (954 Kỳ)
+                📊 <span id="tabHistoryTitle">Tra Cứu Lịch Sử ({total_draws} Kỳ)</span>
             </button>
             <button onclick="switchTab('tab-stats')" id="btn-stats" class="tab-btn px-5 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
                 📈 Biểu Đồ & Thống Kê
@@ -117,7 +124,7 @@ html_content = f"""<!DOCTYPE html>
                         🚀 Chấm Điểm Ngay
                     </button>
                     <button onclick="fillLatest()" class="px-4 h-12 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl transition">
-                        Kỳ Mới Nhất (#00954)
+                        Kỳ Mới Nhất
                     </button>
                 </div>
             </div>
@@ -221,7 +228,7 @@ html_content = f"""<!DOCTYPE html>
 
     <!-- Embedded Data & Mathematical Engine -->
     <script>
-        const DRAWS_DATA = {json.dumps(draws_data, ensure_ascii=False)};
+        let DRAWS_DATA = {json.dumps(draws_data, ensure_ascii=False)};
         
         // Mathematical Constants (from 954 historical draws)
         const MU = [91.1069, 2.5681, 2.6237, 23.8512, 0.5755];
@@ -234,7 +241,6 @@ html_content = f"""<!DOCTYPE html>
         ];
 
         function gamma(s) {{
-            // Approximation for s = 2.5: Gamma(2.5) = 0.75 * sqrt(pi)
             if (Math.abs(s - 2.5) < 1e-6) return 0.75 * Math.sqrt(Math.PI);
             return Math.sqrt(2 * Math.PI / s) * Math.pow((s + 1 / (12 * s - 1 / (10 * s))) / Math.E, s);
         }}
@@ -310,6 +316,39 @@ html_content = f"""<!DOCTYPE html>
                 sqs,
                 special: special ? Number(special) : null
             }};
+        }}
+
+        // Online Sync with GitHub Repo / Vietlott Action
+        async function syncLatestDraws() {{
+            const btn = document.getElementById('btnSync');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Đang kiểm tra...';
+            btn.disabled = true;
+
+            try {{
+                const resp = await fetch('https://raw.githubusercontent.com/Gentsleo/xstk/main/vietlott_535.json?t=' + Date.now());
+                if (!resp.ok) throw new Error('Không thể tải dữ liệu mới từ GitHub.');
+                const freshData = await resp.json();
+                
+                const oldCount = DRAWS_DATA.length;
+                const newCount = freshData.length;
+                if (newCount > oldCount) {{
+                    DRAWS_DATA = freshData;
+                    document.getElementById('headerCount').innerText = newCount;
+                    document.getElementById('tabHistoryTitle').innerText = `Tra Cứu Lịch Sử (${{newCount}} Kỳ)`;
+                    loadHistory();
+                    fillLatest();
+                    if (window.chartsRendered) renderCharts();
+                    alert(`🎉 Đã cập nhật thành công ${{newCount - oldCount}} kỳ mới! Hiện có tổng cộng ${{newCount}} kỳ.`);
+                }} else {{
+                    alert(`Dữ liệu hiện tại đã là mới nhất (Kỳ #${{freshData[freshData.length - 1].draw_code}} ngày ${{freshData[freshData.length - 1].date}}).\n\nLưu ý: Hệ thống GitHub Actions tự động kiểm tra và cào kỳ mới từ Vietlott 2 lần mỗi ngày (18:45 và 20:45 VN). Bạn cũng có thể vào tab Actions trên GitHub để bấm "Run workflow" bất cứ lúc nào!`);
+                }}
+            }} catch (err) {{
+                alert('Không thể kết nối lấy dữ liệu mới: ' + err.message);
+            }} finally {{
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }}
         }}
 
         // Tab Switching
@@ -473,7 +512,6 @@ html_content = f"""<!DOCTYPE html>
         }}
 
         function renderCharts() {{
-            // Compute Ball Frequencies
             const ballCounts = Array(35).fill(0);
             const specCounts = Array(12).fill(0);
             DRAWS_DATA.forEach(d => {{
@@ -482,7 +520,8 @@ html_content = f"""<!DOCTYPE html>
             }});
 
             // Chart Balls
-            new Chart(document.getElementById('chartBalls'), {{
+            if (window.myBallChart) window.myBallChart.destroy();
+            window.myBallChart = new Chart(document.getElementById('chartBalls'), {{
                 type: 'bar',
                 data: {{
                     labels: Array.from({{length: 35}}, (_, i) => String(i+1).padStart(2,'0')),
@@ -503,7 +542,8 @@ html_content = f"""<!DOCTYPE html>
             }});
 
             // Chart Specials
-            new Chart(document.getElementById('chartSpecial'), {{
+            if (window.mySpecChart) window.mySpecChart.destroy();
+            window.mySpecChart = new Chart(document.getElementById('chartSpecial'), {{
                 type: 'bar',
                 data: {{
                     labels: Array.from({{length: 12}}, (_, i) => 'ĐB ' + String(i+1).padStart(2,'0')),
@@ -532,11 +572,11 @@ html_content = f"""<!DOCTYPE html>
 </html>
 """
 
-with open("/home/tringuyen/xstk/index.html", "w", encoding="utf-8") as f:
+with open(os.path.join(BASE_DIR, "index.html"), "w", encoding="utf-8") as f:
     f.write(html_content)
 
-os.makedirs("/home/tringuyen/xstk/docs", exist_ok=True)
-with open("/home/tringuyen/xstk/docs/index.html", "w", encoding="utf-8") as f:
+os.makedirs(os.path.join(BASE_DIR, "docs"), exist_ok=True)
+with open(os.path.join(BASE_DIR, "docs/index.html"), "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("[✓] Đã tạo thành công index.html và docs/index.html sẵn sàng cho GitHub Pages!")
+print("[✓] Đã tạo thành công index.html và docs/index.html với tính năng Cập Nhật Kỳ Mới!")
