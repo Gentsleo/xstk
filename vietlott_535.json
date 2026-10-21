@@ -11446,5 +11446,65 @@
     "num5": 34,
     "special": 6,
     "numbers_str": "06 15 21 30 34 | 06"
+  },
+  {
+    "draw_id": 955,
+    "draw_code": "00955",
+    "date": "19/10/2026",
+    "num1": 5,
+    "num2": 19,
+    "num3": 23,
+    "num4": 28,
+    "num5": 31,
+    "special": 4,
+    "numbers_str": "05 19 23 28 31 | 04"
+  },
+  {
+    "draw_id": 956,
+    "draw_code": "00956",
+    "date": "19/10/2026",
+    "num1": 11,
+    "num2": 14,
+    "num3": 17,
+    "num4": 26,
+    "num5": 28,
+    "special": 7,
+    "numbers_str": "11 14 17 26 28 | 07"
+  },
+  {
+    "draw_id": 957,
+    "draw_code": "00957",
+    "date": "20/10/2026",
+    "num1": 4,
+    "num2": 5,
+    "num3": 6,
+    "num4": 16,
+    "num5": 17,
+    "special": 3,
+    "numbers_str": "04 05 06 16 17 | 03"
+  },
+  {
+    "draw_id": 958,
+    "draw_code": "00958",
+    "date": "20/10/2026",
+    "num1": 2,
+    "num2": 9,
+    "num3": 11,
+    "num4": 25,
+    "num5": 30,
+    "special": 4,
+    "numbers_str": "02 09 11 25 30 | 04"
+  },
+  {
+    "draw_id": 959,
+    "draw_code": "00959",
+    "date": "21/10/2026",
+    "num1": 14,
+    "num2": 20,
+    "num3": 29,
+    "num4": 30,
+    "num5": 34,
+    "special": 11,
+    "numbers_str": "14 20 29 30 34 | 11"
   }
 ]
