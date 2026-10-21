@@ -1,0 +1,12 @@
+# Python virtual environments & bytecode
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Sensitive environment variables
+.env
+
+# Logs & temp files
+*.log
+.test_venv/

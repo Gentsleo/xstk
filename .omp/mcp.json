@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "math-mcp": {
+      "command": "/home/tringuyen/.local/bin/math-mcp"
+    },
+    "mcp-mathematics": {
+      "command": "/home/tringuyen/.local/bin/mcp-mathematics"
+    },
+    "wolframalpha": {
+      "command": "/home/tringuyen/.local/share/mcp-servers/mcp-wolframalpha/.venv/bin/python",
+      "args": [
+        "/home/tringuyen/.local/share/mcp-servers/mcp-wolframalpha/src/core/server.py"
+      ]
+    }
+  }
+}
