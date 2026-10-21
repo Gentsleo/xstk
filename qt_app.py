@@ -161,7 +161,7 @@ class XSTKMainWindow(QMainWindow):
         self.tabs.addTab(self.create_generator_tab(), "⚡ Gợi Ý Bộ Số Tối Ưu")
         self.tabs.addTab(self.create_history_tab(), "📊 Lịch Sử 954 Kỳ")
         self.tabs.addTab(self.create_charts_tab(), "📈 Biểu Đồ Thống Kê")
-        
+        self.tabs.addTab(self.create_qr_theory_tab(), "📐 Lý Thuyết Mã QR")
         main_layout.addWidget(self.tabs)
 
     # ------------------ TAB 1: ĐÁNH GIÁ BỘ SỐ ------------------
@@ -474,6 +474,61 @@ class XSTKMainWindow(QMainWindow):
             self.lbl_chart_img.setPixmap(pix.scaled(1000, 560, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         else:
             self.lbl_chart_img.setText(f"Chưa có file biểu đồ {filename}.\nVui lòng chạy './xstk.sh plot' trước.")
+
+    # ------------------ TAB 5: LÝ THUYẾT MÃ QR ------------------
+    def create_qr_theory_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        txt = QTextEdit()
+        txt.setReadOnly(True)
+        html = """
+        <h2 style='color: #89b4fa;'>📐 LÝ THUYẾT DUNG SAI MÃ QR (QR TOLERANCE ENGINE)</h2>
+        <p style='color: #a6adc8; font-size: 14px;'>
+        Mô hình lấy cảm hứng từ nguyên lý <b>Mã Sửa Sai (Reed-Solomon Level Q)</b> trong mã QR: 
+        <i>"Một mã QR bị mất hoặc nhòe 20% - 25% diện tích vẫn có thể quét thành công nhờ các Điểm Neo Bất Biến (Finder Patterns) và Vạch Nhịp Đồng Bộ (Timing Patterns)."</i>
+        </p>
+        <br>
+        <table border='1' cellpadding='8' style='border-collapse: collapse; border-color: #313244; color: #cdd6f4; width: 100%;'>
+            <tr style='background-color: #313244; color: #89b4fa;'>
+                <th>Thành phần Mã QR</th>
+                <th>Vai trò trong Mã QR</th>
+                <th>Tương ứng trong Vietlott 5/35</th>
+                <th>Công thức Toán học Áp dụng</th>
+            </tr>
+            <tr>
+                <td style='color: #f9e2af;'><b>Dung sai lỗi 20 - 25% (Level Q)</b></td>
+                <td>Mất 25% dữ liệu máy ảnh vẫn giải mã được</td>
+                <td>Vùng bao phủ 75 - 80% kỳ quay thực tế, lọc bỏ 70% bộ số rác</td>
+                <td>Phân phối Chi-Square &chi;<sup>2</sup>(5) với p &ge; 0.20 (D<sup>2</sup><sub>M</sub> &le; 7.09)</td>
+            </tr>
+            <tr>
+                <td style='color: #89b4fa;'><b>3 Ô vuông góc (Finder Patterns)</b></td>
+                <td>Điểm neo định vị toạ độ và góc xoay</td>
+                <td>Trọng tâm Tổng điểm (90), Cân bằng Chẵn/Lẻ (3:2, 2:3), Tài/Xỉu</td>
+                <td>Vector kỳ vọng &mu; = [91.1, 2.57, 2.62, 23.85, 0.58]<sup>T</sup></td>
+            </tr>
+            <tr>
+                <td style='color: #cba6f7;'><b>Ma trận khử nhiễu (Reed-Solomon)</b></td>
+                <td>Khử nhiễu đa chiều trên trường hữu hạn GF(2<sup>8</sup>)</td>
+                <td>Khử sạch đa cộng tuyến giữa Tổng và Số Lớn (Corr = +0.876)</td>
+                <td>Khoảng cách Mahalanobis: D<sup>2</sup><sub>M</sub> = (x - &mu;)<sup>T</sup> &Sigma;<sup>-1</sup> (x - &mu;)</td>
+            </tr>
+            <tr>
+                <td style='color: #a6e3a1;'><b>Vạch nhịp (Timing Patterns)</b></td>
+                <td>Đường xen kẽ sọc đen/trắng chống vón cục pixel</td>
+                <td>Đảm bảo 5 quả bóng trải đều khắp dải [1, 35], chống dồn cụm</td>
+                <td>Shannon Gap Entropy: H(Gaps) = -&Sigma; p<sub>i</sub> ln(p<sub>i</sub>)</td>
+            </tr>
+        </table>
+        <br>
+        <h3 style='color: #a6e3a1;'>🎯 Kết Luận Thực Nghiệm:</h3>
+        <p style='color: #cdd6f4;'>
+        Trong không gian 324,632 bộ số, thuật toán loại bỏ hoàn toàn các bộ số dị biệt (dồn cục, toàn chẵn/lẻ) và chỉ giữ lại những bộ số có điểm SQS &ge; 80 (thuộc Top Typical Set), bảo đảm tương thích tối đa với quy luật phân phối của máy quay thưởng.
+        </p>
+        """
+        txt.setHtml(html)
+        layout.addWidget(txt)
+        return tab
 
     def trigger_update(self):
         self.btn_auto_update.setEnabled(False)

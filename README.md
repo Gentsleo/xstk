@@ -61,23 +61,44 @@ Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh M
 
 ---
 
-## 📐 Mô Hình Toán Học Cốt Lõi
+## 📐 Mô Hình Toán Học Cốt Lõi: Lý Thuyết Dung Sai Mã QR (QR Tolerance Engine)
 
-### 1. Khoảng cách Mahalanobis ($D_M^2$)
+Mô hình lấy cảm hứng từ nguyên lý **Mã Sửa Sai (Error-Correcting Code - Reed-Solomon Level Q)** trong công nghệ mã QR:
+> **"Một mã QR bị mất hoặc nhòe 20% – 25% diện tích vẫn có thể quét thành công nhờ các Điểm Neo Bất Biến (Finder Patterns) và Vạch Nhịp Đồng Bộ (Timing Patterns)."**
+
+Áp dụng vào Xác suất Thống kê Vietlott Lotto 5/35:
+* Không gian tổ hợp có tới $C_{35}^5 = 324,632$ bộ số. Thay vì cố gắng dự đoán chính xác tuyệt đối từng quả bóng vi mô (điều bất khả thi do tính ngẫu nhiên), mô hình đi tìm **Vùng Dung Sai Điển Hình (Typical Set)** nơi mà **$75\% - 80\%$ các kỳ quay thực tế trong lịch sử bắt buộc phải hội tụ về**.
+* Bất kỳ bộ số nào nằm ngoài vùng dung sai này đều bị coi là **"nhiễu rác làm hỏng mã QR"** (như bộ số toàn chẵn, toàn lẻ, hoặc dồn cục `16-17-18-19-20`) và bị loại bỏ.
+
+### 1. Bảng đối chiếu triết lý: Mã QR ↔ Xác Suất Vietlott
+
+| Thành phần Mã QR | Vai trò trong Mã QR | Tương ứng trong Mô hình XSTK 5/35 | Công thức Toán học áp dụng |
+|---|---|---|---|
+| **Dung sai lỗi 20–25% (Level Q)** | Cho phép mất 20–25% diện tích mà camera vẫn quét được dữ liệu gốc | Vùng bao phủ $75–80\%$ các kỳ quay thực tế, lọc bỏ $70\%$ các bộ số rác | **Phân phối Chi-Square $\chi^2(5)$** với ngưỡng $p \ge 0.20$ ($D_M^2 \le 7.09$) |
+| **3 Ô vuông góc (Finder Patterns)** | Điểm neo định vị toạ độ, giúp máy quét nhận diện góc quay | Điểm cân bằng vĩ mô bất biến: Trọng tâm Tổng điểm, Tỷ lệ Chẵn/Lẻ, Tài/Xỉu | Vector kỳ vọng $\boldsymbol{\mu} = [91.1, 2.57, 2.62, 23.85, 0.58]^T$ |
+| **Ma trận khử nhiễu (Reed-Solomon)** | Bóc tách nhiễu đa chiều trên trường Galois $GF(2^8)$, không phạt trùng lặp | Khử triệt để hiện tượng đa cộng tuyến giữa Tổng và Số Lớn ($\rho = +0.876$) | **Khoảng cách Mahalanobis** $D_M^2 = (\mathbf{x} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu})$ |
+| **Vạch nhịp đồng bộ (Timing Patterns)** | Các dải xen kẽ đen/trắng giúp chống hiện tượng pixel vón thành cục | Đảm bảo 5 quả bóng không bị dồn cục, rải đều hài hòa trên dải $[1, 35]$ | **Shannon Gap Entropy** $H(\text{Gaps}) = -\sum p_i \ln p_i$ |
+| **Dữ liệu Payload cốt lõi** | Thông điệp nguyên bản được khôi phục trọn vẹn | Bộ số hoàn chỉnh $5$ số chính $+ 1$ số đặc biệt đạt điểm SQS cao | **Chỉ số SQS (Thang điểm 100)** |
+
+---
+
+### 2. Các Công thức Toán học Chi tiết
+
+#### A. Khoảng cách Mahalanobis Khử Tương Quan Chéo ($D_M^2$)
 $$D_M^2(\mathbf{x}) = (\mathbf{x} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu})$$
-Với $\mathbf{x} = [\text{Sum}, \text{Odds}, \text{Highs}, \text{Span}, \text{Consecs}]^T$. Biến ngẫu nhiên $D_M^2$ tuân theo phân phối $\chi^2(5)$:
+Với $\mathbf{x} = [\text{Sum}, \text{Odds}, \text{Highs}, \text{Span}, \text{Consecs}]^T$. Biến ngẫu nhiên $D_M^2$ tuân theo phân phối Chi-Square với $k=5$ bậc tự do:
 $$p = 1 - F_{\chi^2_5}(D_M^2)$$
 
-### 2. Shannon Gap Entropy ($H_{\text{Gaps}}$)
+#### B. Shannon Gap Entropy ($H_{\text{Gaps}}$ - Đo độ rải đều)
 $$H(\text{Gaps}) = -\sum_{i=1}^6 p_i \ln p_i \quad \left(p_i = \frac{g_i}{36}\right)$$
-Đo lường độ rải đều của 5 số trên trục số $[1, 35]$.
+Đo lường độ rải đều của 5 số trên trục số $[1, 35]$. Ngưỡng tối ưu: $H \ge 1.60$ (cực đại lý thuyết $\ln(6) \approx 1.79$).
 
-### 3. Thang Điểm Chất Lượng Chuẩn Hóa (SQS 0 - 100)
+#### C. Thang Điểm Chất Lượng Chuẩn Hóa (SQS 0 - 100)
 $$\text{SQS} = \text{Score}_{\text{main}} \times 0.85 + \text{Score}_{\text{special}} \times 0.15$$
-* $\text{SQS} \ge 75/100$: **XUẤT SẮC** (Top 25% tâm phân phối).
+* $\text{SQS} \ge 75/100$: **XUẤT SẮC** (Top 25% tâm phân phối đối xứng hoàn hảo).
 * $40 \le \text{SQS} < 75$: **ĐẠT CHUẨN** (Vùng dung sai 80% QR Code).
-* $\text{SQS} < 10$: **CẢNH BÁO** (Dị biệt, dồn cụm).
-
+* $10 \le \text{SQS} < 40$: **DUNG SAI BIÊN** (Lệch nhẹ).
+* $\text{SQS} < 10$: **CẢNH BÁO** (Dị tật, dồn cụm, lệch chẵn/lẻ $p < 0.05$).
 ---
 
 ## 🌐 Triển Khai Lên GitHub & GitHub Pages
