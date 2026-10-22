@@ -93,6 +93,9 @@
             <button onclick="switchTab('tab-stats')" id="btn-stats" class="tab-btn px-5 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
                 📈 Biểu Đồ & Thống Kê
             </button>
+            <button onclick="switchTab('tab-qr-theory')" id="btn-qr-theory" class="tab-btn px-5 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
+                📐 Lý Thuyết Mã QR
+            </button>
         </div>
 
         <!-- TAB 1: EVALUATE -->
@@ -211,6 +214,66 @@
                 <div class="bg-brand-card border border-brand-border rounded-2xl p-6 shadow-xl">
                     <h3 class="font-bold text-brand-accent mb-4">Tần Suất 12 Số Đặc Biệt</h3>
                     <canvas id="chartSpecial" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: QR THEORY -->
+        <div id="tab-qr-theory" class="tab-content hidden space-y-6">
+            <div class="bg-brand-card border border-brand-border rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="border-b border-brand-border pb-4">
+                    <h2 class="text-xl font-bold text-brand-primary flex items-center gap-2">
+                        📐 Lý Thuyết Dung Sai Mã QR (QR Tolerance Theory)
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">
+                        Ứng dụng nguyên lý Mã Sửa Sai Reed-Solomon (Level Q - Dung sai 25%) vào Không Gian Xác Suất Vietlott 5/35
+                    </p>
+                </div>
+
+                <div class="bg-brand-dark p-5 rounded-xl border border-brand-border">
+                    <h3 class="font-bold text-yellow-400 mb-2">💡 Triết Lý Cốt Lõi:</h3>
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        Một mã QR bị mất hoặc nhòe 20% – 25% diện tích vẫn có thể quét thành công nhờ các <strong>Điểm Neo Định Vị (Finder Patterns)</strong> và <strong>Vạch Nhịp Đồng Bộ (Timing Patterns)</strong>. Tương tự, trong 324,632 bộ số của Lotto 5/35, ta không cần đoán vi mô từng quả bóng mà đi tìm <strong>Vùng Dung Sai Điển Hình (Typical Set)</strong> nơi mà <strong>75% - 80% các kỳ quay thực tế bắt buộc phải hội tụ về</strong>. Bất kỳ bộ số nào nằm ngoài vùng này (dồn cục, toàn chẵn, toàn lẻ, v.v.) đều bị xem là nhiễu làm hỏng mã QR và bị loại bỏ.
+                    </p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border border-brand-border rounded-xl">
+                        <thead class="bg-brand-border text-gray-200 font-bold">
+                            <tr>
+                                <th class="p-3">Thành phần Mã QR</th>
+                                <th class="p-3">Vai trò trong Mã QR</th>
+                                <th class="p-3">Tương ứng trong Vietlott 5/35</th>
+                                <th class="p-3 text-brand-primary">Công thức Toán học</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-brand-border text-gray-300">
+                            <tr>
+                                <td class="p-3 font-bold text-yellow-400">Dung sai lỗi 20–25% (Level Q)</td>
+                                <td class="p-3">Mất 25% dữ liệu máy ảnh vẫn giải mã được</td>
+                                <td class="p-3">Vùng bao phủ 75–80% kỳ quay thực tế, lọc bỏ 70% bộ số rác</td>
+                                <td class="p-3 font-mono text-xs text-brand-secondary">Chi-Square χ²(5) với p ≥ 0.20 (D²_M ≤ 7.09)</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-blue-400">3 Ô vuông góc (Finder Patterns)</td>
+                                <td class="p-3">Điểm neo định vị toạ độ và góc xoay</td>
+                                <td class="p-3">Trọng tâm Tổng điểm (90), Cân bằng Chẵn/Lẻ (3:2, 2:3), Tài/Xỉu</td>
+                                <td class="p-3 font-mono text-xs text-brand-secondary">Vector kỳ vọng μ = [91.1, 2.57, 2.62, 23.85, 0.58]ᵀ</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-purple-400">Ma trận giải mã (Reed-Solomon)</td>
+                                <td class="p-3">Khử nhiễu đa chiều trên trường hữu hạn GF(2⁸)</td>
+                                <td class="p-3">Khử sạch đa cộng tuyến giữa Tổng và Số Lớn (Corr = +0.876)</td>
+                                <td class="p-3 font-mono text-xs text-brand-secondary">Khoảng cách Mahalanobis: D²_M = (x - μ)ᵀ Σ⁻¹ (x - μ)</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-emerald-400">Vạch nhịp (Timing Patterns)</td>
+                                <td class="p-3">Đường xen kẽ sọc đen/trắng chống vón cục pixel</td>
+                                <td class="p-3">Đảm bảo 5 quả bóng trải đều khắp dải [1, 35], chống dồn cụm</td>
+                                <td class="p-3 font-mono text-xs text-brand-secondary">Shannon Gap Entropy: H(Gaps) = -Σ p_i ln(p_i)</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
