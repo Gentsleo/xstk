@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Mô hình Đánh giá Bộ số Vietlott 5/35 Nâng Cao - SQS Engine v2.0
-Kết hợp 5 trụ cột toán học và lý thuyết trò chơi:
+Kết hợp các trụ cột toán học và xác suất thực nghiệm:
 1. Khoảng cách Mahalanobis khử tương quan chéo (D_M^2 ~ Chi-Square 5 bậc tự do).
 2. Shannon Gap Entropy (Tối đa hóa độ phân tán khoảng cách giữa các số).
 3. Chuỗi Markov Chuyển Trạng Thái (Kiểm soát số lặp kỳ liền kề R <= 2).
 4. Phân Phối Nhịp Vắng Poisson (Kiểm soát tổng thời gian vắng mặt Skip-Sum trong [20, 54]).
-5. Lý Thuyết Trò Chơi Tối Đa Hóa Kỳ Vọng Độc Quyền (Anti-Clustering EV / Chống chia giải Jackpot).
 Kèm Ma Trận Bao Phủ Tối Thiểu (Covering Design C(10, 5, 3, 5) - Stefan Mandel / La Jolla).
+Loại bỏ hoàn toàn bias cưỡng ép dải số để bảo toàn 100% không gian xác suất trúng giải.
 """
 
 import sys
@@ -103,13 +103,12 @@ def get_history_context():
 
 def evaluate_combination(combo, special=None, context=None):
     """
-    Đánh giá toàn diện 5+1 số theo SQS Engine v2.0:
+    Đánh giá toàn diện 5+1 số theo SQS Engine v2.0 không thiên vị (Unbiased):
     - Mahalanobis Distance D_M^2
     - Shannon Gap Entropy
     - Special Ball Z-Score
     - Markov Repeat (R <= 2)
     - Poisson Skip-Sum (20 <= S <= 54)
-    - Anti-Clustering Solo EV (Số >= 32)
     """
     combo = sorted([int(x) for x in combo])
     if len(combo) != 5:
@@ -174,7 +173,7 @@ def evaluate_combination(combo, special=None, context=None):
     joint_prob = p_val_main * (0.8 + 0.2 * entropy_factor) * spec_factor
     sqs_v1 = round(min(100.0, max(0.0, joint_prob * 100.0)), 1)
 
-    # 5. SQS v2.0 - Tích Hợp Động Học Lịch Sử & Lý Thuyết Trò Chơi
+    # 5. SQS v2.0 - Tích Hợp Động Học Lịch Sử & Kiểm Soát Rủi Ro
     if context is None:
         latest_draw, current_skips = get_history_context()
     else:
@@ -222,30 +221,24 @@ def evaluate_combination(combo, special=None, context=None):
         "mult": s_mult
     }
 
-    # 5C. Anti-Clustering Solo EV (Lý Thuyết Trò Chơi Cox 1998)
+    # 5C. Thông tin dải số cao (>= 32) mang tính mô tả, không áp đặt phạt điểm để tránh bias
     has_high = any(x >= 32 for x in combo)
     high_count = sum(1 for x in combo if x >= 32)
-    if has_high:
-        anti_status = f"ĐỘC QUYỀN EV (Có {high_count} số >= 32)"
-        anti_mult = 1.05
-    else:
-        anti_status = "CỤM SINH NHẬT (Toàn bộ <= 31, dễ chia giải)"
-        anti_mult = 0.95
     anti_info = {
         "has_high_zone": has_high,
         "high_count": high_count,
-        "status": anti_status,
-        "mult": anti_mult
+        "status": f"Dải cao: {high_count} số >= 32" if has_high else "Dải chuẩn: 5 số <= 31 (52% lịch sử)",
+        "mult": 1.0
     }
 
-    # Điểm SQS v2.0 tổng hợp đa tầng
-    sqs_v2 = round(min(100.0, max(0.0, sqs_v1 * markov_info["mult"] * skip_info["mult"] * anti_info["mult"])), 1)
+    # Điểm SQS v2.0 tổng hợp hoàn toàn không thiên vị (Unbiased SQS v2.0)
+    sqs_v2 = round(min(100.0, max(0.0, sqs_v1 * markov_info["mult"] * skip_info["mult"])), 1)
 
     # Phân hạng v2.0
     if sqs_v2 >= 75.0:
         grade = "XUẤT SẮC (Top 15% Tâm Đối Xứng & Chuỗi Markov Tối Ưu)"
         color = "\033[0;32m"
-        rec = "Bộ số hoàn hảo: Đối xứng Gauss chuẩn, nhịp Poisson vàng, chống chia giải Jackpot độc quyền."
+        rec = "Bộ số hoàn hảo: Đối xứng Gauss chuẩn, nhịp Poisson vàng, cấu trúc không gian tối ưu."
     elif sqs_v2 >= 40.0:
         grade = "ĐẠT CHUẨN (Vùng Dung Sai Hội Tụ SQS v2.0)"
         color = "\033[1;33m"
@@ -293,7 +286,7 @@ def print_result(res):
     header_str = f"{combo_str} | ĐB: {sp['special']:02d}" if sp else combo_str
 
     print("=" * 72)
-    print(f"  PHÂN TÍCH BỘ SỐ VIETLOTT 5/35 - SQS ENGINE v2.0")
+    print(f"  PHÂN TÍCH BỘ SỐ VIETLOTT 5/35 - SQS ENGINE v2.0 (UNBIASED)")
     print(f"  Bộ số: [ {header_str} ]")
     print("=" * 72)
     print(f"1. KIỂM ĐỊNH HÌNH THÁI VÀ MAHALANOBIS (SQS v1.0):")
@@ -312,10 +305,10 @@ def print_result(res):
     m = res['markov_info']
     s = res['skip_info']
     a = res['anti_info']
-    print(f"\n3. NÂNG CẤP ĐỘNG HỌC & LÝ THUYẾT TRÒ CHƠI (SQS v2.0):")
+    print(f"\n3. NÂNG CẤP ĐỘNG HỌC (SQS v2.0):")
     print(f"   • Chuỗi Markov ({m['prev_code']}): {m['status']} (Hệ số: x{m['mult']:.2f})")
     print(f"   • Nhịp vắng Poisson:     {s['status']} (Hệ số: x{s['mult']:.2f}, TB: {s['mean_skip']} kỳ/số)")
-    print(f"   • Chống chia giải Solo EV: {a['status']} (Hệ số: x{a['mult']:.2f})")
+    print(f"   • Cấu trúc dải số:       {a['status']}")
 
     print("-" * 72)
     print(f"• ĐIỂM SQS v1.0 NỀN TẢNG:      {res['sqs_v1']:>5.1f} / 100")
@@ -327,33 +320,31 @@ def print_result(res):
 def generate_covering_wheel(v=10):
     """
     Sinh Dàn Bao Tổ Hợp Tối Thiểu (Combinatorial Covering Design C(v, 5, 3, 5))
-    Phương án #4 chọn tự động bể v số -> Phương án #3 bọc tối thiểu thành các vé tối ưu.
+    Lấy ngẫu nhiên tự nhiên từ toàn bộ không gian số (không ép buộc [32, 35])
+    đảm bảo phân phối đồng nhất và không thiên vị.
     """
     latest_draw, current_skips = get_history_context()
     prev_winning = set([latest_draw[f"num{j}"] for j in range(1, 6)]) if latest_draw else set()
     
-    print(f"[*] Đang thực thi Phương án #4: Tự động chọn Bể {v} số tối ưu toàn phần...")
+    print(f"[*] Đang thực thi chọn Bể {v} số tối ưu toàn phần không thiên vị...")
     print(f"    - Căn cứ kỳ mới nhất #{latest_draw['draw_code'] if latest_draw else 'N/A'}: {sorted(list(prev_winning))}")
-    print(f"    - Tối ưu hóa Entropy + Nhịp vắng Poisson + Solo Jackpot EV...")
+    print(f"    - Tối ưu hóa Entropy + Nhịp vắng Poisson...")
 
     best_pool = None
     best_score = -1e9
     random.seed(os.getpid() ^ int(math.pi * 1e6))
 
     for _ in range(40000):
-        # 1 hoặc 2 số từ kỳ trước
+        # 1 hoặc 2 số từ kỳ trước (Markov sweet spot)
         n_prev = random.choice([1, 2]) if len(prev_winning) >= 2 else 1
         sub_prev = random.sample(list(prev_winning), n_prev) if prev_winning else []
         
-        # 1 hoặc 2 số chống chia giải trong [32, 35]
-        n_high = random.choice([1, 2])
-        sub_high = random.sample([32, 33, 34, 35], n_high)
-        
-        rem_candidates = [x for x in range(1, 36) if x not in sub_prev and x not in sub_high]
-        need = v - len(sub_prev) - len(sub_high)
+        # Chọn các số còn lại từ toàn bộ 35 số tự nhiên không gán ép
+        rem_candidates = [x for x in range(1, 36) if x not in sub_prev]
+        need = v - len(sub_prev)
         sub_rem = random.sample(rem_candidates, need)
         
-        cand = set(sub_prev + sub_high + sub_rem)
+        cand = set(sub_prev + sub_rem)
         if len(cand) != v:
             continue
             
@@ -378,18 +369,16 @@ def generate_covering_wheel(v=10):
             best_score = score
             best_pool = cand_list
 
-    print(f"\n[✓] ĐÃ CHỌN THÀNH CÔNG BỂ {v} SỐ TỐI ƯU TOÀN DIỆN:")
+    print(f"\n[✓] ĐÃ CHỌN THÀNH CÔNG BỂ {v} SỐ TỐI ƯU TỰ NHIÊN:")
     print(f"    Bể số V = [ {' '.join(f'{x:02d}' for x in best_pool)} ]")
     print(f"    • Điểm toán học: {best_score:.2f} | Tỷ lệ Chẵn/Lẻ: {sum(1 for x in best_pool if x%2==0)}C/{sum(1 for x in best_pool if x%2!=0)}L")
     print(f"    • Số lặp kỳ trước: {sorted(list(prev_winning.intersection(set(best_pool))))}")
-    print(f"    • Số chống chia giải (>=32): {[x for x in best_pool if x >= 32]}")
+    print(f"    • Số dải cao (>=32): {[x for x in best_pool if x >= 32]} (Xuất hiện tự nhiên)")
     print(f"    • Nhịp vắng TB: {statistics.mean([current_skips.get(x, 6) for x in best_pool]):.1f} kỳ/số")
 
     print(f"\n[*] Đang áp dụng Phương án #3: Ma trận bọc tối thiểu C({v}, 5, 3, 5)...")
     
-    # Với v=10, phân hoạch thành 2 vé rời rạc kích thước 5.
-    # Theo Nguyên lý Lồng chim (Pigeonhole): n1 + n2 = 5 -> max(n1, n2) >= 3.
-    # Cam kết toán học: Bất kỳ 5 số nào về trong bể 10 số đều đảm bảo >= 1 vé trúng ít nhất 3 số!
+    # Phân hoạch thành 2 vé rời rạc kích thước 5.
     best_pair = None
     max_sqs = -1
 
@@ -401,7 +390,6 @@ def generate_covering_wheel(v=10):
         r1 = evaluate_combination(list(t1), context=(latest_draw, current_skips))
         r2 = evaluate_combination(list(t2), context=(latest_draw, current_skips))
         
-        # Trọng số ưu tiên cặp vé có cả 2 đều nằm trong vùng vàng Poisson
         s1_skip = r1["skip_info"]["skip_sum"]
         s2_skip = r2["skip_info"]["skip_sum"]
         pen1 = 0 if (18 <= s1_skip <= 56) else -25
@@ -413,7 +401,6 @@ def generate_covering_wheel(v=10):
             best_pair = (t1, t2, r1, r2)
 
     t1, t2, r1, r2 = best_pair
-    # Gợi ý số đặc biệt tối ưu cho 2 vé
     spec_candidates = [8, 6, 12, 7, 9, 3]
     sp1 = spec_candidates[0] if spec_candidates[0] not in t1 else spec_candidates[1]
     sp2 = spec_candidates[2] if spec_candidates[2] not in t2 else spec_candidates[3]
@@ -441,7 +428,7 @@ def generate_covering_wheel(v=10):
 
 def generate_candidates(count=5):
     """Tự động tạo N bộ số chuẩn 5+1 đạt SQS v2.0 >= 80."""
-    print(f"[*] Đang tạo {count} bộ số hoàn chỉnh tối ưu SQS v2.0 (Toàn diện 4 mô hình):\n")
+    print(f"[*] Đang tạo {count} bộ số hoàn chỉnh tối ưu SQS v2.0 (Unbiased):\n")
     found = []
     attempts = 0
     spec_choices = [8, 6, 12, 7, 9, 3, 2, 10, 4, 5]
@@ -466,7 +453,7 @@ def generate_candidates(count=5):
         print(f"  Bộ {idx:02d}: [{s_str} | ĐB: {sp:02d}]  Tổng: {r['sum']:>3} | SQS v2: {r['sqs_v2']:>4.1f}/100 | Lặp: {m['repeats']} | Skip: {s['skip_sum']}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Đánh giá bộ số Vietlott 5/35 Nâng Cao - SQS Engine v2.0")
+    parser = argparse.ArgumentParser(description="Đánh giá bộ số Vietlott 5/35 Nâng Cao - SQS Engine v2.0 (Unbiased)")
     parser.add_argument("numbers", nargs="*", type=int, help="5 số chính, kèm số đặc biệt thứ 6 nếu có (ví dụ: 6 15 21 30 34 6)")
     parser.add_argument("-s", "--special", type=int, default=None, help="Số đặc biệt (1-12)")
     parser.add_argument("--gen", type=int, default=0, help="Tự động tạo N bộ số chuẩn 5+1 tối ưu SQS v2.0")
@@ -488,5 +475,4 @@ if __name__ == "__main__":
         res = evaluate_combination(args.numbers, args.special)
         print_result(res)
     else:
-        # Chạy minh họa mặc định
         generate_covering_wheel(10)

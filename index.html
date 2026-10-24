@@ -674,10 +674,10 @@
 
             const hasHigh = sorted.some(x => x >= 32);
             const highCount = sorted.filter(x => x >= 32).length;
-            const antiMult = hasHigh ? 1.05 : 0.95;
-            const antiStatus = hasHigh ? `Có ${highCount} số ≥ 32 [✓ 100% Solo EV]` : "Toàn số ≤ 31 [Dễ chia giải]";
+            const antiStatus = hasHigh ? `Dải cao: Có ${highCount} số ≥ 32` : "Dải chuẩn: 5 số ≤ 31 (52% lịch sử)";
 
-            const sqsV2 = Math.min(100.0, Math.max(0.0, Math.round(sqsV1 * markovMult * skipMult * antiMult * 10) / 10));
+            // SQS v2.0 Hoàn Toàn Không Thiên Vị (Loại bỏ phạt điểm chia giải để bảo toàn 100% không gian trúng thưởng)
+            const sqsV2 = Math.min(100.0, Math.max(0.0, Math.round(sqsV1 * markovMult * skipMult * 10) / 10));
 
             return {
                 combo: sorted,
@@ -959,24 +959,15 @@
                     if (!subPrev.includes(pick)) subPrev.push(pick);
                 }
 
-                // 1 or 2 from [32, 35]
-                const highPool = [32, 33, 34, 35];
-                const nHigh = Math.random() < 0.5 ? 1 : 2;
-                const subHigh = [];
-                for (let i = 0; i < nHigh; i++) {
-                    const pick = highPool[Math.floor(Math.random() * highPool.length)];
-                    if (!subHigh.includes(pick)) subHigh.push(pick);
-                }
-
-                // remaining from 1..35
+                // Lấy các số tự nhiên từ toàn bộ 35 số không cưỡng ép dải số
                 const rest = [];
                 for (let i = 1; i <= 35; i++) {
-                    if (!subPrev.includes(i) && !subHigh.includes(i)) rest.push(i);
+                    if (!subPrev.includes(i)) rest.push(i);
                 }
 
-                const need = 10 - subPrev.length - subHigh.length;
+                const need = 10 - subPrev.length;
                 const shuffled = rest.sort(() => Math.random() - 0.5);
-                const cand = [...subPrev, ...subHigh, ...shuffled.slice(0, need)].sort((a,b) => a - b);
+                const cand = [...subPrev, ...shuffled.slice(0, need)].sort((a,b) => a - b);
                 if (cand.length !== 10) continue;
 
                 const evens = cand.filter(x => x % 2 === 0).length;
