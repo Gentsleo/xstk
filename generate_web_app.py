@@ -999,7 +999,7 @@ html_content = f"""<!DOCTYPE html>
                 rand -= weights[i];
             }}
             return Number(top[0][0]);
-
+        }}
         // Wheel Generator C(10, 5, 3, 5)
         let CURRENT_WHEEL_TICKETS = [];
 
