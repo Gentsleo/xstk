@@ -947,6 +947,51 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('resAntiCluster').innerText = res.antiStatus;
         }}
 
+        function selectOptimalSpecialBall(combo, latestDraw, excludeSp=null) {{
+            const prevSp = latestDraw ? latestDraw.special : null;
+            const allDraws = getAllDraws();
+            const specSkips = {{}};
+            const specCounts = {{}};
+            for (let i = 1; i <= 12; i++) {{
+                specSkips[i] = allDraws.length;
+                specCounts[i] = 0;
+            }}
+            allDraws.forEach((d, idx) => {{
+                const sp = d.special;
+                if (sp >= 1 && sp <= 12) {{
+                    if (specSkips[sp] === allDraws.length) specSkips[sp] = idx;
+                    specCounts[sp]++;
+                }}
+            }});
+
+            const exp = allDraws.length / 12.0;
+            const sigma = Math.sqrt(allDraws.length * (1/12) * (11/12));
+            const scores = {{}};
+
+            for (let s = 1; s <= 12; s++) {{
+                if (combo.includes(s)) continue; // Rule 1: Không trùng 5 số chính
+                if (prevSp !== null && s === prevSp) continue; // Rule 2: Không lặp số ĐB kỳ trước
+                if (excludeSp !== null && s === excludeSp) continue;
+
+                const sk = specSkips[s];
+                let skipScore = 0.5;
+                if (sk >= 3 && sk <= 18) {{
+                    skipScore = 1.0 - Math.abs(sk - 11.0) / 20.0;
+                }} else if (sk < 3) {{
+                    skipScore = 0.6;
+                }} else {{
+                    skipScore = 0.5 - Math.min(0.3, (sk - 18) / 30.0);
+                }}
+
+                const z = (specCounts[s] - exp) / sigma;
+                const freqScore = 0.5 + 0.1 * z;
+                scores[s] = skipScore * 0.6 + freqScore * 0.4;
+            }}
+
+            const ranked = Object.entries(scores).sort((a,b) => b[1] - a[1]);
+            return ranked.length > 0 ? Number(ranked[0][0]) : 7;
+        }}
+
         // Wheel Generator C(10, 5, 3, 5)
         let CURRENT_WHEEL_TICKETS = [];
 
@@ -1039,10 +1084,11 @@ html_content = f"""<!DOCTYPE html>
                 }}
             }}
 
-            const [t1, t2, r1, r2] = bestPair;
-            const spChoices = [8, 6, 12, 7, 9, 3];
-            const sp1 = spChoices.find(x => !t1.includes(x)) || 8;
-            const sp2 = spChoices.find(x => !t2.includes(x) && x !== sp1) || 12;
+            const [t1, t2] = bestPair;
+            const sp1 = selectOptimalSpecialBall(t1, latest, null);
+            const sp2 = selectOptimalSpecialBall(t2, latest, sp1);
+            const r1 = evaluateCombo(t1, sp1);
+            const r2 = evaluateCombo(t2, sp2);
 
             CURRENT_WHEEL_TICKETS = [
                 {{ nums: t1, special: sp1, sqs: r1.sqs }},

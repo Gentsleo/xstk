@@ -317,6 +317,62 @@ def print_result(res):
     print(f"• NHẬN ĐỊNH TOÁN HỌC:          {res['recommendation']}")
     print("=" * 72)
 
+def select_optimal_special_ball(combo, latest_draw=None, exclude_sp=None):
+    """
+    Bộ lọc số đặc biệt 3 tiêu chí:
+    1. Không trùng 5 số chính (chiếm 87.98% lịch sử).
+    2. Không lặp lại số ĐB kỳ trước (chiếm 90.77% lịch sử).
+    3. Nhịp vắng Poisson vàng [3, 18] và tần suất thực tế.
+    """
+    if exclude_sp is None:
+        exclude_sp = set()
+    prev_sp = latest_draw["special"] if latest_draw else None
+
+    draws = []
+    if os.path.exists(JSON_PATH):
+        try:
+            with open(JSON_PATH, "r", encoding="utf-8") as f:
+                draws = json.load(f)
+        except Exception:
+            pass
+
+    spec_skips = {i: len(draws) for i in range(1, 13)}
+    spec_counts = {i: 0 for i in range(1, 13)}
+    for idx, d in enumerate(reversed(draws)):
+        sp = d.get("special", 0)
+        if 1 <= sp <= 12:
+            if spec_skips[sp] == len(draws):
+                spec_skips[sp] = idx
+            spec_counts[sp] += 1
+
+    scores = {}
+    exp = len(draws) / 12.0
+    sigma = math.sqrt(len(draws) * (1/12) * (11/12)) if len(draws) > 0 else 1.0
+
+    for s in range(1, 13):
+        if s in combo:
+            continue
+        if prev_sp is not None and s == prev_sp:
+            continue
+        if s in exclude_sp:
+            continue
+            
+        sk = spec_skips[s]
+        if 3 <= sk <= 18:
+            skip_score = 1.0 - abs(sk - 11.0) / 20.0
+        elif sk < 3:
+            skip_score = 0.6
+        else:
+            skip_score = 0.5 - min(0.3, (sk - 18) / 30.0)
+            
+        z = (spec_counts[s] - exp) / sigma
+        freq_score = 0.5 + 0.1 * z
+        total_score = skip_score * 0.6 + freq_score * 0.4
+        scores[s] = total_score
+
+    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return ranked[0][0] if ranked else 7
+
 def generate_covering_wheel(v=10):
     """
     Sinh Dàn Bao Tổ Hợp Tối Thiểu (Combinatorial Covering Design C(v, 5, 3, 5))
@@ -401,9 +457,10 @@ def generate_covering_wheel(v=10):
             best_pair = (t1, t2, r1, r2)
 
     t1, t2, r1, r2 = best_pair
-    spec_candidates = [8, 6, 12, 7, 9, 3]
-    sp1 = spec_candidates[0] if spec_candidates[0] not in t1 else spec_candidates[1]
-    sp2 = spec_candidates[2] if spec_candidates[2] not in t2 else spec_candidates[3]
+    sp1 = select_optimal_special_ball(t1, latest_draw)
+    sp2 = select_optimal_special_ball(t2, latest_draw, exclude_sp={sp1})
+    r1 = evaluate_combination(list(t1), sp1, context=(latest_draw, current_skips))
+    r2 = evaluate_combination(list(t2), sp2, context=(latest_draw, current_skips))
 
     print("\n" + "=" * 72)
     print(f"  DÀN 2 VÉ BAO TỐI ƯU C({v}, 5, 3, 5) - BẢO HIỂM 100% TRÚNG GIẢI 3")
