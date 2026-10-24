@@ -371,7 +371,12 @@ def select_optimal_special_ball(combo, latest_draw=None, exclude_sp=None):
         scores[s] = total_score
 
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    return ranked[0][0] if ranked else 7
+    if not ranked:
+        return 7
+    top_candidates = ranked[:min(4, len(ranked))]
+    cands = [x[0] for x in top_candidates]
+    weights = [max(0.01, x[1] ** 2) for x in top_candidates]
+    return random.choices(cands, weights=weights, k=1)[0]
 
 def generate_covering_wheel(v=10):
     """
