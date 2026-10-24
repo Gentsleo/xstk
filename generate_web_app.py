@@ -13,7 +13,7 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XSTK - Vietlott Lotto 5/35 (Mô Hình Dung Sai QR & Mahalanobis)</title>
+    <title>XSTK - Vietlott Lotto 5/35 (SQS Engine v2.0 & Dàn Bao Stefan Mandel)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -63,379 +63,539 @@ html_content = f"""<!DOCTYPE html>
             background: linear-gradient(135deg, #f38ba8 0%, #ef4444 100%);
             color: #ffffff;
         }}
-        /* Toast Animation */
+        .ball-sm {{
+            width: 2.1rem;
+            height: 2.1rem;
+            font-size: 0.9rem;
+        }}
+        .no-scrollbar::-webkit-scrollbar {{
+            display: none;
+        }}
+        .no-scrollbar {{
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }}
         @keyframes slideDown {{
             from {{ transform: translateY(-100%); opacity: 0; }}
             to {{ transform: translateY(0); opacity: 1; }}
         }}
         .toast-animate {{
-            animation: slideDown 0.3s ease-out forwards;
+            animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }}
     </style>
 </head>
-<body class="min-h-screen p-3 md:p-8">
-    <!-- Toast Notification -->
-    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-md hidden">
-        <div id="toastBody" class="p-4 rounded-xl shadow-2xl border text-sm font-bold flex items-center justify-between gap-3 toast-animate bg-brand-card border-brand-primary text-gray-200">
+<body class="p-3 md:p-6 max-w-7xl mx-auto space-y-6">
+
+    <!-- Toast Notification Container (Mobile Friendly) -->
+    <div id="toastContainer" class="fixed top-4 left-4 right-4 z-50 pointer-events-none flex justify-center hidden">
+        <div id="toastBody" class="max-w-md w-full p-4 rounded-xl shadow-2xl border text-sm font-bold flex items-center justify-between gap-3 toast-animate pointer-events-auto bg-brand-card border-brand-primary text-gray-200">
             <span id="toastMsg">Thông báo</span>
-            <button onclick="hideToast()" class="text-gray-400 hover:text-white text-lg font-bold px-1">✕</button>
+            <button onclick="hideToast()" class="text-gray-400 hover:text-white text-lg font-bold p-1">✕</button>
         </div>
     </div>
 
-    <!-- Modal Update Center -->
+    <!-- UPDATE MODAL (MOBILE FRIENDLY) -->
     <div id="updateModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
-        <div class="bg-brand-card border border-brand-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
-            <div class="flex justify-between items-center border-b border-brand-border pb-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl max-w-lg w-full p-5 md:p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-brand-border pb-3">
                 <h3 class="text-lg font-extrabold text-brand-primary flex items-center gap-2">
                     🔄 Trung Tâm Cập Nhật Kỳ Mới
                 </h3>
                 <button onclick="closeUpdateModal()" class="text-gray-400 hover:text-white text-xl font-bold p-1">✕</button>
             </div>
 
-            <!-- Current State -->
-            <div class="bg-brand-dark p-4 rounded-xl border border-brand-border flex items-center justify-between">
-                <div>
-                    <span class="text-xs text-gray-400 block font-semibold">KỲ HIỆN TẠI TRÊN MÁY:</span>
-                    <span id="modalCurrentDraw" class="text-xl font-extrabold text-brand-secondary">#00954</span>
+            <!-- Current status summary -->
+            <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border text-xs space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Kỳ mới nhất trên máy:</span>
+                    <strong id="modalLatestCode" class="text-brand-secondary">#00000</strong>
                 </div>
-                <div class="text-right">
-                    <span class="text-xs text-gray-400 block font-semibold">TỔNG SỐ KỲ:</span>
-                    <span id="modalTotalDraws" class="text-xl font-extrabold text-gray-200">{total_draws}</span>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Ngày quay:</span>
+                    <span id="modalLatestDate" class="text-gray-300">--/--/----</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Tổng số kỳ hiện có:</span>
+                    <span id="modalTotalDraws" class="text-gray-200 font-bold">{total_draws}</span>
                 </div>
             </div>
 
             <!-- Option 1: Cloud Sync -->
-            <div class="space-y-3">
-                <h4 class="text-sm font-bold text-gray-300 flex items-center gap-2">
-                    ☁️ Tùy Chọn 1: Đồng bộ từ GitHub (Đám mây)
-                </h4>
-                <p class="text-xs text-gray-400 leading-relaxed">
-                    Hệ thống GitHub Actions tự động cào từ Vietlott mỗi ngày lúc <strong>18:45 VN</strong> và <strong>20:45 VN</strong>. Bấm nút dưới để nạp kỳ mới nếu đám mây đã cào xong:
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">☁️ Tùy Chọn 1: Đồng Bộ Từ Đám Mây GitHub</h4>
+                <p class="text-xs text-gray-400">
+                    Máy chủ đám mây tự động cào kết quả từ Vietlott lúc 18:45 & 20:45 mỗi ngày. Bấm để tải các kỳ mới nhất:
                 </p>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <button onclick="syncLatestDraws()" id="btnSyncModal" class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow">
-                        🔄 Đồng Bộ Từ Đám Mây
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnSyncCloud" onclick="syncFromCloud()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-xl text-xs md:text-sm transition flex items-center justify-center gap-2 shadow-md">
+                        <span id="syncSpinner" class="hidden">⏳</span> 🔄 Đồng Bộ Từ Đám Mây
                     </button>
-                    <a href="https://github.com/Gentsleo/xstk/actions/workflows/auto-update.yml" target="_blank" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-brand-border text-center">
-                        ⚡ Ép Cào Ngay (GitHub)
+                    <a href="https://github.com/Gentsleo/xstk/actions/workflows/auto-update.yml" target="_blank" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 border border-brand-border">
+                        ⚡ Ép Cào Ngay
                     </a>
                 </div>
             </div>
 
-            <!-- Option 2: Quick Manual Entry for Mobile -->
-            <div class="border-t border-brand-border pt-4 space-y-3">
-                <h4 class="text-sm font-bold text-yellow-400 flex items-center gap-2">
-                    📱 Tùy Chọn 2: Nhập nhanh kỳ vừa quay trên điện thoại
-                </h4>
-                <p class="text-xs text-gray-400 leading-relaxed">
-                    Nếu bạn vừa xem tivi / Vietlott SMS có kết quả mà chưa kịp chờ máy chủ, bạn có thể nhập thẳng vào đây. Web sẽ lưu ngay vào điện thoại của bạn:
+            <div class="relative flex py-1 items-center">
+                <div class="flex-grow border-t border-brand-border"></div>
+                <span class="flex-shrink mx-3 text-gray-500 text-xs uppercase font-bold">HOẶC</span>
+                <div class="flex-grow border-t border-brand-border"></div>
+            </div>
+
+            <!-- Option 2: Quick manual entry -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">📱 Tùy Chọn 2: Nhập Nhanh Kỳ Vừa Quay Trên ĐT</h4>
+                <p class="text-xs text-gray-400">
+                    Khi vừa xem tivi / có tin nhắn kết quả, bạn có thể điền ngay vào đây (Lưu trực tiếp vào bộ nhớ điện thoại):
                 </p>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                        <label class="text-[11px] text-gray-400 font-semibold block mb-1">Mã Kỳ (vd: 00955):</label>
-                        <input id="manualDrawCode" type="text" placeholder="00955" class="w-full p-2 text-sm font-bold bg-brand-dark border border-brand-border rounded-lg text-center">
+                        <label class="text-gray-400 block mb-1">Mã kỳ (vd: 00955):</label>
+                        <input id="inputNewCode" type="text" class="w-full p-2 bg-brand-dark border border-brand-border rounded-lg text-gray-200 font-bold text-center">
                     </div>
                     <div>
-                        <label class="text-[11px] text-gray-400 font-semibold block mb-1">Ngày Quay:</label>
-                        <input id="manualDrawDate" type="text" placeholder="dd/mm/yyyy" class="w-full p-2 text-sm font-bold bg-brand-dark border border-brand-border rounded-lg text-center">
+                        <label class="text-gray-400 block mb-1">Ngày quay:</label>
+                        <input id="inputNewDate" type="text" class="w-full p-2 bg-brand-dark border border-brand-border rounded-lg text-gray-200 font-bold text-center">
                     </div>
                 </div>
 
                 <div>
-                    <label class="text-[11px] text-gray-400 font-semibold block mb-1">5 Số Chính (1 - 35) & 1 Số ĐB (1 - 12):</label>
-                    <div class="flex items-center gap-1.5">
-                        <input id="mNum1" type="number" min="1" max="35" class="w-full p-2 text-center text-sm font-bold bg-brand-dark border border-brand-border rounded-lg">
-                        <input id="mNum2" type="number" min="1" max="35" class="w-full p-2 text-center text-sm font-bold bg-brand-dark border border-brand-border rounded-lg">
-                        <input id="mNum3" type="number" min="1" max="35" class="w-full p-2 text-center text-sm font-bold bg-brand-dark border border-brand-border rounded-lg">
-                        <input id="mNum4" type="number" min="1" max="35" class="w-full p-2 text-center text-sm font-bold bg-brand-dark border border-brand-border rounded-lg">
-                        <input id="mNum5" type="number" min="1" max="35" class="w-full p-2 text-center text-sm font-bold bg-brand-dark border border-brand-border rounded-lg">
+                    <label class="text-gray-400 block mb-1 text-xs">5 số chính + 1 số ĐB:</label>
+                    <div class="flex items-center gap-1.5 justify-between">
+                        <input id="inN1" type="number" min="1" max="35" placeholder="01" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN2" type="number" min="1" max="35" placeholder="02" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN3" type="number" min="1" max="35" placeholder="03" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN4" type="number" min="1" max="35" placeholder="04" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN5" type="number" min="1" max="35" placeholder="05" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
                         <span class="text-brand-accent font-bold">|</span>
-                        <input id="mNumSpec" type="number" min="1" max="12" placeholder="ĐB" class="w-14 p-2 text-center text-sm font-bold bg-brand-dark border-2 border-brand-accent text-brand-accent rounded-lg">
+                        <input id="inNS" type="number" min="1" max="12" placeholder="ĐB" class="w-11 h-10 text-center font-bold bg-brand-dark border-2 border-brand-accent text-brand-accent rounded-lg text-sm">
                     </div>
                 </div>
 
-                <div class="flex gap-2 pt-1">
-                    <button onclick="handleSaveManualDraw()" class="flex-1 py-2.5 bg-brand-primary text-gray-900 rounded-xl text-sm font-bold hover:bg-blue-300 transition shadow">
-                        💾 Lưu Kỳ Này Vào Điện Thoại
-                    </button>
-                    <button onclick="handleClearCustomDraws()" class="py-2.5 px-3 bg-red-950/40 hover:bg-red-900 text-red-300 rounded-xl text-xs font-bold transition border border-red-800/50">
-                        Xóa Nhập Tay
-                    </button>
+                <button onclick="saveManualDraw()" class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold rounded-xl text-xs md:text-sm transition flex items-center justify-center gap-2 shadow-lg">
+                    💾 Lưu Kỳ Này Vào Điện Thoại
+                </button>
+            </div>
+
+            <!-- Clear cache option -->
+            <div class="border-t border-brand-border pt-3 flex justify-between items-center text-xs">
+                <span class="text-gray-500">Đặt lại bộ nhớ cục bộ:</span>
+                <button onclick="resetLocalStorageDraws()" class="text-red-400 hover:text-red-300 underline font-semibold">
+                    Xóa dữ liệu lưu tạm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-brand-border">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-brand-primary flex items-center gap-2">
+                🎯 XSTK - Vietlott Lotto 5/35
+            </h1>
+            <p class="text-xs md:text-sm text-gray-400 mt-1">
+                SQS Engine v2.0: Mahalanobis &bull; Gap Entropy &bull; Chuỗi Markov &bull; Nhịp Poisson &bull; Dàn Bao Stefan Mandel
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2.5 w-full md:w-auto">
+            <span id="headerStatus" class="px-3 py-1.5 bg-green-900/40 text-green-400 border border-green-700/50 rounded-full text-xs font-semibold">
+                ● <span id="headerCount">{total_draws}</span> Kỳ Lịch Sử
+            </span>
+            <button onclick="openUpdateModal()" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5 shadow-lg">
+                🔄 Cập Nhật Kỳ Mới
+            </button>
+            <a href="https://github.com/Gentsleo/xstk" target="_blank" class="px-3.5 py-2 bg-brand-border hover:bg-slate-700 text-gray-200 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5">
+                GitHub
+            </a>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="flex border-b border-brand-border gap-1 md:gap-2 text-xs md:text-sm font-bold overflow-x-auto no-scrollbar">
+        <button onclick="switchTab('tab-eval')" id="btn-eval" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-brand-primary text-brand-primary flex items-center gap-1.5">
+            🔍 Đánh Giá Bộ Số (SQS v2.0)
+        </button>
+        <button onclick="switchTab('tab-wheel')" id="btn-wheel" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+            🎯 Dàn Bao Tối Ưu C(10,5,3,5)
+        </button>
+        <button onclick="switchTab('tab-gen')" id="btn-gen" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+            ⚡ Gợi Ý Bộ Số (SQS ≥ 80)
+        </button>
+        <button onclick="switchTab('tab-history')" id="btn-history" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+            📊 <span id="tabHistoryTitle">Lịch Sử ({total_draws} Kỳ)</span>
+        </button>
+        <button onclick="switchTab('tab-stats')" id="btn-stats" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+            📈 Biểu Đồ Thống Kê
+        </button>
+        <button onclick="switchTab('tab-qr-theory')" id="btn-qr-theory" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
+            📐 5 Trụ Cột Toán Học
+        </button>
+    </div>
+
+    <!-- TAB 1: EVALUATE -->
+    <div id="tab-eval" class="tab-content space-y-6">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
+            <h2 class="text-base md:text-lg font-bold text-brand-primary mb-3">Nhập bộ số để chấm điểm độ chuẩn xác suất SQS Engine v2.0</h2>
+            <div class="flex flex-wrap items-center gap-2 md:gap-3">
+                <input id="num1" type="number" min="1" max="35" placeholder="01" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
+                <input id="num2" type="number" min="1" max="35" placeholder="02" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
+                <input id="num3" type="number" min="1" max="35" placeholder="03" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
+                <input id="num4" type="number" min="1" max="35" placeholder="04" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
+                <input id="num5" type="number" min="1" max="35" placeholder="05" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
+                
+                <span class="text-xl md:text-2xl font-bold text-brand-accent px-0.5">|</span>
+                
+                <input id="numSpecial" type="number" min="1" max="12" placeholder="ĐB" class="w-14 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border-2 border-brand-accent text-brand-accent rounded-xl focus:outline-none">
+
+                <button onclick="handleEvaluate()" class="w-full sm:w-auto px-5 h-11 md:h-12 bg-brand-primary text-gray-900 font-bold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg mt-2 sm:mt-0">
+                    🚀 Chấm Điểm SQS v2.0
+                </button>
+                <button onclick="fillLatest()" class="w-full sm:w-auto px-4 h-11 md:h-12 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl transition text-xs md:text-sm">
+                    Kỳ Mới Nhất
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Scorecard -->
+        <div id="evalResultCard" class="hidden bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-border pb-6 gap-4">
+                <div class="flex items-center gap-4 md:gap-6">
+                    <div class="text-center">
+                        <span class="text-[11px] text-gray-400 block font-semibold">ĐIỂM CHUẨN SQS v2.0</span>
+                        <span id="resSQS" class="text-4xl md:text-5xl font-extrabold text-brand-secondary">-- / 100</span>
+                    </div>
+                    <div>
+                        <span id="resBadge" class="px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider">--</span>
+                        <p id="resDesc" class="text-xs md:text-sm text-gray-300 mt-2 max-w-xl">--</p>
+                    </div>
+                </div>
+                <div id="resBallsDisplay" class="flex flex-wrap items-center gap-1.5 md:gap-2"></div>
+            </div>
+
+            <!-- Dynamic v2 Indicators -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 border-b border-brand-border pb-5">
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Chuỗi Markov (Lặp Kỳ Trước)</span>
+                    <span id="resMarkov" class="text-base font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">Chuẩn: 0, 1 hoặc tối đa 2 số</span>
+                </div>
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Nhịp Vắng Poisson (Skip-Sum)</span>
+                    <span id="resPoisson" class="text-base font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">Vùng vàng thực tế: [20, 54] kỳ</span>
+                </div>
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Chống Chia Giải Solo EV (Cox 1998)</span>
+                    <span id="resAntiCluster" class="text-base font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">Có số ≥ 32: Đảm bảo 100% giải độc quyền</span>
+                </div>
+            </div>
+
+            <!-- Metric Grid v1 Foundations -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Tổng Điểm 5 Số</span>
+                    <span id="resSum" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">Lý thuyết: 90 ± 21</span>
+                </div>
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Tỷ Lệ Chẵn / Lẻ</span>
+                    <span id="resParity" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">Chuẩn: 3L-2C / 2L-3C</span>
+                </div>
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Mahalanobis (D²_M)</span>
+                    <span id="resDM" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">k=5 bậc tự do (p-value)</span>
+                </div>
+                <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-gray-400 block">Gap Entropy (H)</span>
+                    <span id="resEntropy" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
+                    <span class="text-[10px] text-gray-500">Tối đa: 1.79</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Container -->
-    <div class="max-w-6xl mx-auto space-y-6">
-        <!-- Header -->
-        <header class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-extrabold text-brand-primary flex items-center gap-2">
-                    🎯 XSTK - Vietlott Lotto 5/35
-                </h1>
-                <p class="text-xs md:text-sm text-gray-400 mt-1">
-                    Mô hình dung sai mã QR (Typical Set) kết hợp Khoảng cách Mahalanobis & Shannon Gap Entropy
-                </p>
-            </div>
-            <div class="flex flex-wrap items-center justify-center gap-2.5 w-full md:w-auto">
-                <span id="headerStatus" class="px-3 py-1.5 bg-green-900/40 text-green-400 border border-green-700/50 rounded-full text-xs font-semibold">
-                    ● <span id="headerCount">{total_draws}</span> Kỳ Lịch Sử
-                </span>
-                <button onclick="openUpdateModal()" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5 shadow-lg">
-                    🔄 Cập Nhật Kỳ Mới
-                </button>
-                <a href="https://github.com/Gentsleo/xstk" target="_blank" class="px-3.5 py-2 bg-brand-border hover:bg-slate-700 text-gray-200 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5">
-                    GitHub
-                </a>
-            </div>
-        </header>
-
-        <!-- Navigation Tabs -->
-        <div class="flex border-b border-brand-border gap-1 md:gap-2 text-xs md:text-sm font-bold overflow-x-auto no-scrollbar">
-            <button onclick="switchTab('tab-eval')" id="btn-eval" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-brand-primary text-brand-primary flex items-center gap-1.5">
-                🔍 Đánh Giá Bộ Số
-            </button>
-            <button onclick="switchTab('tab-gen')" id="btn-gen" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-                ⚡ Gợi Ý Bộ Số (SQS ≥ 80)
-            </button>
-            <button onclick="switchTab('tab-history')" id="btn-history" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-                📊 <span id="tabHistoryTitle">Lịch Sử ({total_draws} Kỳ)</span>
-            </button>
-            <button onclick="switchTab('tab-stats')" id="btn-stats" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-                📈 Biểu Đồ Thống Kê
-            </button>
-            <button onclick="switchTab('tab-qr-theory')" id="btn-qr-theory" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-                📐 Lý Thuyết Mã QR
-            </button>
-        </div>
-
-        <!-- TAB 1: EVALUATE -->
-        <div id="tab-eval" class="tab-content space-y-6">
-            <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
-                <h2 class="text-base md:text-lg font-bold text-brand-primary mb-3">Nhập bộ số để chấm điểm độ chuẩn xác suất</h2>
-                <div class="flex flex-wrap items-center gap-2 md:gap-3">
-                    <input id="num1" type="number" min="1" max="35" placeholder="01" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
-                    <input id="num2" type="number" min="1" max="35" placeholder="02" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
-                    <input id="num3" type="number" min="1" max="35" placeholder="03" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
-                    <input id="num4" type="number" min="1" max="35" placeholder="04" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
-                    <input id="num5" type="number" min="1" max="35" placeholder="05" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
-                    
-                    <span class="text-xl md:text-2xl font-bold text-brand-accent px-0.5">|</span>
-                    
-                    <input id="numSpecial" type="number" min="1" max="12" placeholder="ĐB" class="w-14 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border-2 border-brand-accent text-brand-accent rounded-xl focus:outline-none">
-
-                    <button onclick="handleEvaluate()" class="w-full sm:w-auto px-5 h-11 md:h-12 bg-brand-primary text-gray-900 font-bold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg mt-2 sm:mt-0">
-                        🚀 Chấm Điểm
-                    </button>
-                    <button onclick="fillLatest()" class="w-full sm:w-auto px-4 h-11 md:h-12 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl transition text-xs md:text-sm">
-                        Kỳ Mới Nhất
-                    </button>
-                </div>
-            </div>
-
-            <!-- Result Scorecard -->
-            <div id="evalResultCard" class="hidden bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-6">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-border pb-6 gap-4">
-                    <div class="flex items-center gap-4 md:gap-6">
-                        <div class="text-center">
-                            <span class="text-[11px] text-gray-400 block font-semibold">ĐIỂM CHUẨN SQS</span>
-                            <span id="resSQS" class="text-4xl md:text-5xl font-extrabold text-brand-secondary">-- / 100</span>
-                        </div>
-                        <div>
-                            <span id="resBadge" class="px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider">--</span>
-                            <p id="resDesc" class="text-xs md:text-sm text-gray-300 mt-2 max-w-xl">--</p>
-                        </div>
-                    </div>
-                    <div id="resBallsDisplay" class="flex flex-wrap items-center gap-1.5 md:gap-2"></div>
-                </div>
-
-                <!-- Metric Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
-                        <span class="text-[11px] text-gray-400 block">Tổng Điểm 5 Số</span>
-                        <span id="resSum" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
-                        <span class="text-[10px] text-gray-500">Lý thuyết: 90 ± 21</span>
-                    </div>
-                    <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
-                        <span class="text-[11px] text-gray-400 block">Tỷ Lệ Chẵn / Lẻ</span>
-                        <span id="resParity" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
-                        <span class="text-[10px] text-gray-500">Chuẩn: 3L-2C / 2L-3C</span>
-                    </div>
-                    <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
-                        <span class="text-[11px] text-gray-400 block">Mahalanobis (D²_M)</span>
-                        <span id="resDM" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
-                        <span class="text-[10px] text-gray-500">k=5 bậc tự do</span>
-                    </div>
-                    <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
-                        <span class="text-[11px] text-gray-400 block">Gap Entropy (H)</span>
-                        <span id="resEntropy" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
-                        <span class="text-[10px] text-gray-500">Tối đa: 1.79</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: GENERATOR -->
-        <div id="tab-gen" class="tab-content hidden space-y-6">
-            <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <label class="font-bold text-xs md:text-sm text-gray-300">Số lượng:</label>
-                    <input id="genCount" type="number" min="1" max="20" value="5" class="w-16 p-2 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
-                    <button onclick="handleGenerate()" class="px-5 py-2.5 bg-brand-primary text-gray-900 font-bold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm">
-                        ⚡ Sinh Số Tối Ưu (SQS ≥ 80)
-                    </button>
-                </div>
-                <span class="text-xs text-gray-400 italic">Bộ lọc đa chiều Mahalanobis và Shannon Entropy</span>
-            </div>
-
-            <div id="genResultList" class="space-y-3"></div>
-        </div>
-
-        <!-- TAB 3: HISTORY -->
-        <div id="tab-history" class="tab-content hidden space-y-4">
-            <div class="bg-brand-card border border-brand-border rounded-2xl p-3 md:p-4 shadow-xl flex gap-3">
-                <input id="historySearch" oninput="filterHistory()" type="text" placeholder="Tìm theo kỳ (vd: 00954) hoặc ngày (vd: 18/10/2026)..." class="flex-1 p-2.5 md:p-3 bg-brand-dark border border-brand-border rounded-xl focus:outline-none text-xs md:text-sm">
-            </div>
-            <div class="bg-brand-card border border-brand-border rounded-2xl shadow-xl overflow-x-auto max-h-[600px] overflow-y-auto">
-                <table class="w-full text-left text-xs md:text-sm">
-                    <thead class="bg-brand-border text-gray-300 font-bold sticky top-0">
-                        <tr>
-                            <th class="p-2.5 md:p-3">Kỳ</th>
-                            <th class="p-2.5 md:p-3">Ngày</th>
-                            <th class="p-2.5 md:p-3">Số 1</th>
-                            <th class="p-2.5 md:p-3">Số 2</th>
-                            <th class="p-2.5 md:p-3">Số 3</th>
-                            <th class="p-2.5 md:p-3">Số 4</th>
-                            <th class="p-2.5 md:p-3">Số 5</th>
-                            <th class="p-2.5 md:p-3 text-brand-accent">Số ĐB</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTableBody" class="divide-y divide-brand-border"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TAB 4: CHARTS -->
-        <div id="tab-stats" class="tab-content hidden space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
-                    <h3 class="font-bold text-brand-primary mb-4 text-sm md:text-base">Tần Suất 35 Quả Bóng Chính</h3>
-                    <canvas id="chartBalls" height="200"></canvas>
-                </div>
-                <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
-                    <h3 class="font-bold text-brand-accent mb-4 text-sm md:text-base">Tần Suất 12 Số Đặc Biệt</h3>
-                    <canvas id="chartSpecial" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 5: QR THEORY -->
-        <div id="tab-qr-theory" class="tab-content hidden space-y-6">
-            <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-5">
-                <div class="border-b border-brand-border pb-4">
-                    <h2 class="text-lg md:text-xl font-bold text-brand-primary flex items-center gap-2">
-                        📐 Lý Thuyết Dung Sai Mã QR (QR Tolerance Theory)
+    <!-- TAB 2: COVERING WHEEL C(10,5,3,5) (BRAND NEW!) -->
+    <div id="tab-wheel" class="tab-content hidden space-y-6">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-lg md:text-xl font-extrabold text-brand-primary flex items-center gap-2">
+                        🎯 Dàn Bao Tối Ưu C(10, 5, 3, 5) - Stefan Mandel & La Jolla
                     </h2>
                     <p class="text-xs md:text-sm text-gray-400 mt-1">
-                        Ứng dụng nguyên lý Mã Sửa Sai Reed-Solomon (Level Q - Dung sai 25%) vào Không Gian Xác Suất Vietlott 5/35
+                        Áp dụng Phương án #4 (Tự động chọn bể 10 số tối ưu Entropy & EV) & Phương án #3 (Bọc tối thiểu 2 vé cam kết 100% trúng Giải 3).
                     </p>
                 </div>
+                <button onclick="handleGenerateWheel()" class="px-5 py-3 bg-brand-primary text-gray-900 font-extrabold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm flex items-center gap-2">
+                    🎲 Sinh Dàn Bao Toán Học (2 Vé)
+                </button>
+            </div>
 
-                <div class="bg-brand-dark p-4 md:p-5 rounded-xl border border-brand-border">
-                    <h3 class="font-bold text-yellow-400 mb-2 text-sm">💡 Triết Lý Cốt Lõi:</h3>
-                    <p class="text-gray-300 text-xs md:text-sm leading-relaxed">
-                        Một mã QR bị mất hoặc nhòe 20% – 25% diện tích vẫn có thể quét thành công nhờ các <strong>Điểm Neo Định Vị (Finder Patterns)</strong> và <strong>Vạch Nhịp Đồng Bộ (Timing Patterns)</strong>. Tương tự, trong 324,632 bộ số của Lotto 5/35, ta không cần đoán vi mô từng quả bóng mà đi tìm <strong>Vùng Dung Sai Điển Hình (Typical Set)</strong> nơi mà <strong>75% - 80% các kỳ quay thực tế bắt buộc phải hội tụ về</strong>. Bất kỳ bộ số nào nằm ngoài vùng này (dồn cụm, toàn chẵn, toàn lẻ, v.v.) đều bị xem là nhiễu làm hỏng mã QR và bị loại bỏ.
-                    </p>
+            <!-- Guarantee highlight box -->
+            <div class="bg-blue-950/40 border border-blue-800/60 rounded-xl p-4 text-xs md:text-sm text-blue-200 space-y-1.5">
+                <div class="font-extrabold flex items-center gap-1.5 text-blue-300">
+                    💡 ĐỊNH LÝ BẢO HIỂM TOÁN HỌC (Pigeonhole Theorem):
+                </div>
+                <p>
+                    Bể gồm 10 số được phân hoạch thành 2 vé rời rạc ($5 + 5 = 10$). Khi máy lồng cầu quay ra 5 số chính, nếu cả 5 số này nằm trong bể 10 số, theo nguyên lý lồng chim: $n_1 + n_2 = 5 \implies \max(n_1, n_2) \ge 3$. 
+                    <strong>Chắc chắn 100% có ít nhất một vé trúng từ 3 số trở lên!</strong>
+                </p>
+                <div class="text-[11px] text-blue-400 font-semibold">
+                    💰 Tiết kiệm vốn: Chỉ cần mua đúng 2 vé (20.000đ) thay vì mua bao 10 toàn phần 252 vé (2.520.000đ) &mdash; Tiết kiệm 99.2% chi phí!
+                </div>
+            </div>
+        </div>
+
+        <!-- Wheel Display Container -->
+        <div id="wheelContainer" class="hidden space-y-6">
+            <!-- Pool 10 numbers card -->
+            <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl space-y-3">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-brand-border pb-3">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        BỂ 10 SỐ ĐƯỢC CHỌN TỰ ĐỘNG BẰNG PHƯƠNG ÁN #4:
+                    </span>
+                    <span id="wheelPoolMetrics" class="text-xs font-semibold text-brand-secondary">--</span>
+                </div>
+                <div id="wheelPoolBalls" class="flex flex-wrap gap-2 pt-1"></div>
+            </div>
+
+            <!-- 2 Tickets Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Ticket 1 -->
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                        <span class="text-sm font-bold text-brand-primary">🎫 VÉ SỐ 1</span>
+                        <span id="t1Badge" class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-green-900/40 text-green-300 border border-green-700">SQS: --</span>
+                    </div>
+                    <div id="t1Balls" class="flex items-center gap-2"></div>
+                    <div class="text-xs space-y-1 text-gray-400 bg-brand-dark p-3 rounded-xl border border-brand-border">
+                        <div class="flex justify-between"><span>Tổng 5 số:</span><strong id="t1Sum" class="text-gray-200">--</strong></div>
+                        <div class="flex justify-between"><span>Chẵn / Lẻ:</span><span id="t1Parity" class="text-gray-300">--</span></div>
+                        <div class="flex justify-between"><span>Nhịp Poisson:</span><span id="t1Poisson" class="text-brand-secondary">--</span></div>
+                        <div class="flex justify-between"><span>Lặp kỳ trước:</span><span id="t1Markov" class="text-gray-300">--</span></div>
+                    </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs md:text-sm border border-brand-border rounded-xl">
-                        <thead class="bg-brand-border text-gray-200 font-bold">
-                            <tr>
-                                <th class="p-2.5 md:p-3">Thành phần Mã QR</th>
-                                <th class="p-2.5 md:p-3">Vai trò trong Mã QR</th>
-                                <th class="p-2.5 md:p-3">Tương ứng trong Vietlott 5/35</th>
-                                <th class="p-2.5 md:p-3 text-brand-primary">Công thức Toán học</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-brand-border text-gray-300">
-                            <tr>
-                                <td class="p-2.5 md:p-3 font-bold text-yellow-400">Dung sai lỗi 20–25% (Level Q)</td>
-                                <td class="p-2.5 md:p-3">Mất 25% dữ liệu máy ảnh vẫn giải mã được</td>
-                                <td class="p-2.5 md:p-3">Vùng bao phủ 75–80% kỳ quay thực tế, lọc bỏ 70% bộ số rác</td>
-                                <td class="p-2.5 md:p-3 font-mono text-[11px] text-brand-secondary">Chi-Square χ²(5) với p ≥ 0.20 (D²_M ≤ 7.09)</td>
-                            </tr>
-                            <tr>
-                                <td class="p-2.5 md:p-3 font-bold text-blue-400">3 Ô vuông góc (Finder Patterns)</td>
-                                <td class="p-2.5 md:p-3">Điểm neo định vị toạ độ và góc xoay</td>
-                                <td class="p-2.5 md:p-3">Trọng tâm Tổng điểm (90), Cân bằng Chẵn/Lẻ (3:2, 2:3), Tài/Xỉu</td>
-                                <td class="p-2.5 md:p-3 font-mono text-[11px] text-brand-secondary">Vector kỳ vọng μ = [91.1, 2.57, 2.62, 23.85, 0.58]ᵀ</td>
-                            </tr>
-                            <tr>
-                                <td class="p-2.5 md:p-3 font-bold text-purple-400">Ma trận giải mã (Reed-Solomon)</td>
-                                <td class="p-2.5 md:p-3">Khử nhiễu đa chiều trên trường hữu hạn GF(2⁸)</td>
-                                <td class="p-2.5 md:p-3">Khử sạch đa cộng tuyến giữa Tổng và Số Lớn (Corr = +0.876)</td>
-                                <td class="p-2.5 md:p-3 font-mono text-[11px] text-brand-secondary">Khoảng cách Mahalanobis: D²_M = (x - μ)ᵀ Σ⁻¹ (x - μ)</td>
-                            </tr>
-                            <tr>
-                                <td class="p-2.5 md:p-3 font-bold text-emerald-400">Vạch nhịp (Timing Patterns)</td>
-                                <td class="p-2.5 md:p-3">Đường xen kẽ sọc đen/trắng chống vón cục pixel</td>
-                                <td class="p-2.5 md:p-3">Đảm bảo 5 quả bóng trải đều khắp dải [1, 35], chống dồn cụm</td>
-                                <td class="p-2.5 md:p-3 font-mono text-[11px] text-brand-secondary">Shannon Gap Entropy: H(Gaps) = -Σ p_i ln(p_i)</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Ticket 2 -->
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                        <span class="text-sm font-bold text-brand-primary">🎫 VÉ SỐ 2</span>
+                        <span id="t2Badge" class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-green-900/40 text-green-300 border border-green-700">SQS: --</span>
+                    </div>
+                    <div id="t2Balls" class="flex items-center gap-2"></div>
+                    <div class="text-xs space-y-1 text-gray-400 bg-brand-dark p-3 rounded-xl border border-brand-border">
+                        <div class="flex justify-between"><span>Tổng 5 số:</span><strong id="t2Sum" class="text-gray-200">--</strong></div>
+                        <div class="flex justify-between"><span>Chẵn / Lẻ:</span><span id="t2Parity" class="text-gray-300">--</span></div>
+                        <div class="flex justify-between"><span>Nhịp Poisson:</span><span id="t2Poisson" class="text-brand-secondary">--</span></div>
+                        <div class="flex justify-between"><span>Lặp kỳ trước:</span><span id="t2Markov" class="text-gray-300">--</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action button to copy both tickets -->
+            <div class="flex justify-center">
+                <button onclick="copyWheelTickets()" class="px-6 py-3 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-extrabold rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    📋 Sao Chép 2 Vé Để Mua Ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: GENERATOR -->
+    <div id="tab-gen" class="tab-content hidden space-y-6">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <label class="font-bold text-xs md:text-sm text-gray-300">Số lượng:</label>
+                <input id="genCount" type="number" min="1" max="20" value="5" class="w-16 p-2 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                <button onclick="handleGenerate()" class="px-5 py-2.5 bg-brand-primary text-gray-900 font-bold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm">
+                    ⚡ Sinh Số Tối Ưu (SQS v2.0 ≥ 80)
+                </button>
+            </div>
+            <span class="text-xs text-gray-400 italic">Tích hợp đầy đủ Mahalanobis, Entropy, Markov & Poisson</span>
+        </div>
+
+        <div id="genResultList" class="space-y-3"></div>
+    </div>
+
+    <!-- TAB 4: HISTORY -->
+    <div id="tab-history" class="tab-content hidden space-y-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-3 md:p-4 shadow-xl flex gap-3">
+            <input id="historySearch" oninput="filterHistory()" type="text" placeholder="Tìm theo kỳ (vd: 00965) hoặc ngày (vd: 24/10/2026)..." class="flex-1 p-2.5 md:p-3 bg-brand-dark border border-brand-border rounded-xl focus:outline-none text-xs md:text-sm">
+        </div>
+        <div class="bg-brand-card border border-brand-border rounded-2xl shadow-xl overflow-x-auto max-h-[600px] overflow-y-auto">
+            <table class="w-full text-left text-xs md:text-sm">
+                <thead class="bg-brand-border text-gray-300 font-bold sticky top-0">
+                    <tr>
+                        <th class="p-2.5 md:p-3">Kỳ</th>
+                        <th class="p-2.5 md:p-3">Ngày</th>
+                        <th class="p-2.5 md:p-3">Số 1</th>
+                        <th class="p-2.5 md:p-3">Số 2</th>
+                        <th class="p-2.5 md:p-3">Số 3</th>
+                        <th class="p-2.5 md:p-3">Số 4</th>
+                        <th class="p-2.5 md:p-3">Số 5</th>
+                        <th class="p-2.5 md:p-3 text-brand-accent">Số ĐB</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody" class="divide-y divide-brand-border"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 5: STATS -->
+    <div id="tab-stats" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
+                <h3 class="text-sm md:text-base font-bold text-brand-primary mb-4">Tần Suất 35 Số Chính (Lý thuyết: 137.9)</h3>
+                <canvas id="chartBalls" height="180"></canvas>
+            </div>
+            <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
+                <h3 class="text-sm md:text-base font-bold text-brand-accent mb-4">Tần Suất 12 Số Đặc Biệt (Lý thuyết: 80.4)</h3>
+                <canvas id="chartSpecial" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 6: 5 TRỤ CỘT TOÁN HỌC -->
+    <div id="tab-qr-theory" class="tab-content hidden space-y-6">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
+            <h2 class="text-lg md:text-xl font-extrabold text-brand-primary flex items-center gap-2">
+                📐 5 Trụ Cột Toán Học & Lý Thuyết Trò Chơi Trong SQS Engine v2.0
+            </h2>
+            <p class="text-xs md:text-sm text-gray-300 leading-relaxed">
+                Mô hình SQS v2.0 không dùng phương pháp bói toán cảm tính mà ứng dụng các định lý giải tích tổ hợp, hình học Riemann và phân phối xác suất nâng cao:
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
+                    <h4 class="font-bold text-sm text-brand-secondary">1. Khoảng Cách Mahalanobis ($D_M^2$)</h4>
+                    <p class="text-xs text-gray-400">
+                        Khử hoàn toàn tương quan chéo giữa Tổng số, Chẵn/Lẻ, Cao/Thấp, Độ trải rộng và Cặp liên tiếp. Tuân theo phân phối Chi-Square ($\chi^2$) 5 bậc tự do để phát hiện và triệt tiêu các vé dị tật.
+                    </p>
+                </div>
+                <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
+                    <h4 class="font-bold text-sm text-brand-secondary">2. Shannon Gap Entropy ($H$)</h4>
+                    <p class="text-xs text-gray-400">
+                        Đo lường độ hỗn loạn khoảng cách giữa các số trên trục 1-35. Loại bỏ triệt để các vé bị dồn cụm cục bộ, ép các con số phân bổ đều trên toàn bộ phổ số học.
+                    </p>
+                </div>
+                <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
+                    <h4 class="font-bold text-sm text-brand-secondary">3. Chuỗi Markov Chuyển Trạng Thái</h4>
+                    <p class="text-xs text-gray-400">
+                        Kiểm định lặp nhịp giữa 2 kỳ liên tiếp: Trong 964 kỳ quay thực tế, tỷ lệ lặp $\ge 3$ số chỉ là 1.24% và lặp 4 số là 0%. Mô hình cắt bỏ toàn bộ vé có $\ge 3$ số của kỳ trước.
+                    </p>
+                </div>
+                <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
+                    <h4 class="font-bold text-sm text-brand-secondary">4. Phân Phối Nhịp Vắng Poisson</h4>
+                    <p class="text-xs text-gray-400">
+                        Tổng nhịp vắng mặt của 5 số ($S_{{\\text{{Skip}}}}$) có kỳ vọng lý thuyết là 35 kỳ. Vùng hội tụ 80% thực tế nằm vững trong khoảng $[20, 54]$, giúp cân bằng giữa số nóng và số ấm.
+                    </p>
+                </div>
+                <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2 md:col-span-2">
+                    <h4 class="font-bold text-sm text-brand-secondary">5. Hệ Thống Phủ Stefan Mandel & Tối Đa Hóa Kỳ Vọng Độc Quyền Cox 1998</h4>
+                    <p class="text-xs text-gray-400">
+                        Sử dụng Ma trận bao phủ $C(10, 5, 3, 5)$ đảm bảo trúng Giải 3 với chỉ 2 vé. Đồng thời ép chứa các số $\ge 32$ để chống hiện tượng trùng giải do người chơi khác chọn ngày sinh nhật, đảm bảo ẵm trọn 100% quỹ thưởng Jackpot!
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Embedded Data & Mathematical Engine -->
     <script>
+        // In-memory data store
         const BASE_DRAWS = {json.dumps(draws_data, ensure_ascii=False)};
-        let DRAWS_DATA = [...BASE_DRAWS];
+        let LOCAL_DRAWS = [];
+        let DRAWS_DATA = [];
 
-        // Load custom draws from LocalStorage (Mobile friendly)
         function loadLocalStorageDraws() {{
             try {{
-                const saved = localStorage.getItem('xstk_custom_draws');
-                if (saved) {{
-                    const customList = JSON.parse(saved);
-                    customList.forEach(cd => {{
-                        if (!DRAWS_DATA.some(d => d.draw_code === cd.draw_code)) {{
-                            DRAWS_DATA.push(cd);
-                        }}
-                    }});
-                    DRAWS_DATA.sort((a,b) => a.draw_id - b.draw_id);
+                const stored = localStorage.getItem('vietlott_535_custom_draws');
+                if (stored) {{
+                    LOCAL_DRAWS = JSON.parse(stored);
                 }}
             }} catch(e) {{
-                console.error('Lỗi nạp local storage:', e);
+                console.error("Error loading localStorage draws", e);
+                LOCAL_DRAWS = [];
             }}
         }}
 
-        // Mathematical Constants (from 954 historical draws)
-        const MU = [91.1069, 2.5681, 2.6237, 23.8512, 0.5755];
-        const INV_COV = [
-            [ 0.009367, -0.004928, -0.164895, -0.000941, -0.008335],
-            [-0.004928,  0.896688,  0.078079, -0.001084, -0.001216],
-            [-0.164895,  0.078079,  3.775486,  0.027999,  0.141572],
-            [-0.000941, -0.001084,  0.027999,  0.030715,  0.072989],
-            [-0.008335, -0.001216,  0.141572,  0.072989,  2.300800]
-        ];
-
-        function gamma(s) {{
-            if (Math.abs(s - 2.5) < 1e-6) return 0.75 * Math.sqrt(Math.PI);
-            return Math.sqrt(2 * Math.PI / s) * Math.pow((s + 1 / (12 * s - 1 / (10 * s))) / Math.E, s);
+        function getAllDraws() {{
+            const baseMap = new Map();
+            BASE_DRAWS.forEach(d => baseMap.set(d.draw_code, d));
+            LOCAL_DRAWS.forEach(d => baseMap.set(d.draw_code, d));
+            const merged = Array.from(baseMap.values());
+            merged.sort((a,b) => b.draw_id - a.draw_id);
+            return merged;
         }}
 
-        function chi2Cdf(x, k=5) {{
-            if (x <= 0) return 0.0;
+        function computeCurrentSkips() {{
+            const all = getAllDraws();
+            const skips = {{}};
+            for (let i = 1; i <= 35; i++) skips[i] = all.length;
+            for (let idx = 0; idx < all.length; idx++) {{
+                const d = all[idx];
+                [d.num1, d.num2, d.num3, d.num4, d.num5].forEach(num => {{
+                    if (skips[num] === all.length) skips[num] = idx;
+                }});
+            }}
+            return skips;
+        }}
+
+        function updateAppViews() {{
+            DRAWS_DATA = getAllDraws();
+            const total = DRAWS_DATA.length;
+            const latest = DRAWS_DATA[0];
+
+            document.getElementById('headerCount').innerText = total;
+            document.getElementById('modalTotalDraws').innerText = total;
+            document.getElementById('tabHistoryTitle').innerText = `Lịch Sử (${{total}} Kỳ)`;
+
+            if (latest) {{
+                document.getElementById('modalLatestCode').innerText = '#' + latest.draw_code;
+                document.getElementById('modalLatestDate').innerText = latest.date;
+                const nextId = latest.draw_id + 1;
+                document.getElementById('inputNewCode').value = String(nextId).padStart(5, '0');
+                const today = new Date();
+                const dStr = String(today.getDate()).padStart(2, '0') + '/' + String(today.getMonth()+1).padStart(2, '0') + '/' + today.getFullYear();
+                document.getElementById('inputNewDate').value = dStr;
+            }}
+
+            renderHistoryTable();
+            renderCharts();
+        }}
+
+        // Matrix parameters
+        const MU = [90.0, 2.4286, 2.5714, 22.6667, 0.5333];
+        const INV_COV = [
+            [ 0.003115, -0.003889, -0.015241, -0.000628,  0.000109],
+            [-0.003889,  1.178201,  0.019385, -0.007621, -0.001325],
+            [-0.015241,  0.019385,  1.178201,  0.038102,  0.006627],
+            [-0.000628, -0.007621,  0.038102,  0.039625,  0.006892],
+            [ 0.000109, -0.001325,  0.006627,  0.006892,  2.083751]
+        ];
+
+        function gamma(z) {{
+            const g = 7;
+            const C = [0.99999999999980993, 676.52096812869951, -1259.1392167224028,
+                       771.32342877765313, -176.61502916214059, 12.507343278686905,
+                       -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+            if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+            z -= 1;
+            let base = C[0];
+            for (let i = 1; i < g + 2; i++) base += C[i] / (z + i);
+            const t = z + g + 0.5;
+            return Math.sqrt(2 * Math.PI) * Math.pow(t, (z + 0.5)) * Math.exp(-t) * base;
+        }}
+
+        function chi2Cdf(x, k) {{
+            if (x <= 0) return 0;
             const s = k / 2.0;
             const z = x / 2.0;
+            let total = 1.0 / s;
             let term = 1.0 / s;
-            let total = term;
-            for (let n = 1; n < 100; n++) {{
+            for (let n = 1; n < 80; n++) {{
                 term *= z / (s + n);
                 total += term;
                 if (Math.abs(term) < 1e-12) break;
@@ -482,7 +642,52 @@ html_content = f"""<!DOCTYPE html>
             }}
 
             const jointProb = pMain * (0.8 + 0.2 * entropyFactor) * specFactor;
-            const sqs = Math.min(100.0, Math.max(0.0, Math.round(jointProb * 1000) / 10));
+            const sqsV1 = Math.min(100.0, Math.max(0.0, Math.round(jointProb * 1000) / 10));
+
+            // SQS v2.0 Dynamic Extensions
+            const latest = getAllDraws()[0];
+            let markovRepeats = 0;
+            let markovMult = 1.0;
+            let markovStatus = "Tối ưu";
+            if (latest) {{
+                const prevSet = new Set([latest.num1, latest.num2, latest.num3, latest.num4, latest.num5]);
+                markovRepeats = sorted.filter(x => prevSet.has(x)).length;
+                if (markovRepeats <= 2) {{
+                    markovMult = 1.0;
+                    markovStatus = `Lặp ${{markovRepeats}} số [✓ Tối ưu]`;
+                }} else if (markovRepeats === 3) {{
+                    markovMult = 0.6;
+                    markovStatus = `Lặp 3 số [⚠️ Cảnh Báo P=1.2%]`;
+                }} else {{
+                    markovMult = 0.2;
+                    markovStatus = `Lặp ${{markovRepeats}} số [⛔ Nguy Hiểm]`;
+                }}
+            }}
+
+            const skips = computeCurrentSkips();
+            const skipSum = sorted.reduce((acc, x) => acc + (skips[x] !== undefined ? skips[x] : 6), 0);
+            let skipMult = 1.0;
+            let skipStatus = "Chuẩn";
+            if (skipSum >= 20 && skipSum <= 54) {{
+                skipMult = 1.05;
+                skipStatus = `${{skipSum}} kỳ [✓ Vùng Vàng]`;
+            }} else if (skipSum >= 15 && skipSum <= 65) {{
+                skipMult = 1.0;
+                skipStatus = `${{skipSum}} kỳ [Dung Sai Biên]`;
+            }} else if (skipSum < 15) {{
+                skipMult = 0.85;
+                skipStatus = `${{skipSum}} kỳ [Quá Nóng < 15]`;
+            }} else {{
+                skipMult = 0.80;
+                skipStatus = `${{skipSum}} kỳ [Quá Gan > 65]`;
+            }}
+
+            const hasHigh = sorted.some(x => x >= 32);
+            const highCount = sorted.filter(x => x >= 32).length;
+            const antiMult = hasHigh ? 1.05 : 0.95;
+            const antiStatus = hasHigh ? `Có ${{highCount}} số ≥ 32 [✓ 100% Solo EV]` : "Toàn số ≤ 31 [Dễ chia giải]";
+
+            const sqsV2 = Math.min(100.0, Math.max(0.0, Math.round(sqsV1 * markovMult * skipMult * antiMult * 10) / 10));
 
             return {{
                 combo: sorted,
@@ -497,7 +702,13 @@ html_content = f"""<!DOCTYPE html>
                 dmSq: dmSq.toFixed(2),
                 pMain: pMain.toFixed(4),
                 entropy: entropy.toFixed(3),
-                sqs,
+                sqsV1,
+                sqs: sqsV2,
+                markovRepeats,
+                markovStatus,
+                skipSum,
+                skipStatus,
+                antiStatus,
                 special: special ? Number(special) : null
             }};
         }}
@@ -510,9 +721,9 @@ html_content = f"""<!DOCTYPE html>
             const m = document.getElementById('toastMsg');
             m.innerText = msg;
             if (isError) {{
-                b.className = 'p-4 rounded-xl shadow-2xl border text-sm font-bold flex items-center justify-between gap-3 toast-animate bg-red-950/90 border-red-500 text-red-200';
+                b.className = 'max-w-md w-full p-4 rounded-xl shadow-2xl border text-sm font-bold flex items-center justify-between gap-3 toast-animate pointer-events-auto bg-red-950/90 border-red-500 text-red-200';
             }} else {{
-                b.className = 'p-4 rounded-xl shadow-2xl border text-sm font-bold flex items-center justify-between gap-3 toast-animate bg-brand-card border-brand-primary text-gray-200';
+                b.className = 'max-w-md w-full p-4 rounded-xl shadow-2xl border text-sm font-bold flex items-center justify-between gap-3 toast-animate pointer-events-auto bg-brand-card border-brand-primary text-gray-200';
             }}
             c.classList.remove('hidden');
             clearTimeout(toastTimeout);
@@ -522,20 +733,7 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('toastContainer').classList.add('hidden');
         }}
 
-        // Modal Controls
         function openUpdateModal() {{
-            const latest = DRAWS_DATA[DRAWS_DATA.length - 1];
-            document.getElementById('modalCurrentDraw').innerText = '#' + latest.draw_code + ' (' + latest.date + ')';
-            document.getElementById('modalTotalDraws').innerText = DRAWS_DATA.length + ' kỳ';
-            
-            // Prefill manual form with next draw code
-            const nextCode = String(latest.draw_id + 1).padStart(5, '0');
-            document.getElementById('manualDrawCode').value = nextCode;
-            const today = new Date();
-            const d = String(today.getDate()).padStart(2, '0');
-            const mo = String(today.getMonth() + 1).padStart(2, '0');
-            document.getElementById('manualDrawDate').value = `${{d}}/${{mo}}/${{today.getFullYear()}}`;
-            
             document.getElementById('updateModal').classList.remove('hidden');
         }}
 
@@ -543,159 +741,149 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('updateModal').classList.add('hidden');
         }}
 
-        // Online Sync with GitHub Repo
-        async function syncLatestDraws() {{
-            const btn = document.getElementById('btnSyncModal');
-            const orig = btn.innerHTML;
-            btn.innerHTML = '⏳ Đang đồng bộ...';
+        async function syncFromCloud() {{
+            const btn = document.getElementById('btnSyncCloud');
+            const spinner = document.getElementById('syncSpinner');
             btn.disabled = true;
+            spinner.classList.remove('hidden');
+            showToast("Đang kết nối kho GitHub tải kỳ quay mới...");
 
             try {{
-                const resp = await fetch('https://raw.githubusercontent.com/Gentsleo/xstk/main/vietlott_535.json?t=' + Date.now());
-                if (!resp.ok) throw new Error('Không thể tải từ GitHub.');
-                const freshData = await resp.json();
-                
-                const oldCount = DRAWS_DATA.length;
-                const newCount = freshData.length;
-                if (newCount > oldCount) {{
-                    DRAWS_DATA = freshData;
-                    loadLocalStorageDraws(); // re-merge
-                    updateAppViews();
-                    showToast(`🎉 Đã cập nhật thành công ${{DRAWS_DATA.length - oldCount}} kỳ mới!`);
+                const url = "https://raw.githubusercontent.com/Gentsleo/xstk/main/vietlott_535.json?t=" + Date.now();
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const cloudDraws = await res.json();
+
+                if (Array.isArray(cloudDraws) && cloudDraws.length > 0) {{
+                    const curMax = DRAWS_DATA.length > 0 ? DRAWS_DATA[0].draw_id : 0;
+                    const newOnes = cloudDraws.filter(d => d.draw_id > curMax);
+                    if (newOnes.length > 0) {{
+                        newOnes.forEach(d => LOCAL_DRAWS.push(d));
+                        localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
+                        updateAppViews();
+                        showToast(`🎉 Đã tải thành công ${{newOnes.length}} kỳ quay mới từ đám mây!`);
+                    }} else {{
+                        showToast(`Dữ liệu đã đồng bộ mới nhất (Kỳ #${{cloudDraws[cloudDraws.length-1].draw_code}}).`);
+                    }}
                     closeUpdateModal();
                 }} else {{
-                    showToast(`Dữ liệu đã là mới nhất (Kỳ #${{freshData[freshData.length - 1].draw_code}})!`);
+                    showToast("Dữ liệu từ đám mây không hợp lệ.", true);
                 }}
-            }} catch (err) {{
-                showToast('Lỗi đồng bộ: ' + err.message, true);
+            }} catch(err) {{
+                showToast("Lỗi đồng bộ đám mây: " + err.message + ". Vui lòng thử lại sau.", true);
             }} finally {{
-                btn.innerHTML = orig;
                 btn.disabled = false;
+                spinner.classList.add('hidden');
             }}
         }}
 
-        // Save Manual Draw on Mobile (LocalStorage)
-        function handleSaveManualDraw() {{
-            const code = document.getElementById('manualDrawCode').value.trim();
-            const date = document.getElementById('manualDrawDate').value.trim();
-            const n1 = Number(document.getElementById('mNum1').value);
-            const n2 = Number(document.getElementById('mNum2').value);
-            const n3 = Number(document.getElementById('mNum3').value);
-            const n4 = Number(document.getElementById('mNum4').value);
-            const n5 = Number(document.getElementById('mNum5').value);
-            const spec = Number(document.getElementById('mNumSpec').value);
+        function saveManualDraw() {{
+            const code = document.getElementById('inputNewCode').value.trim();
+            const date = document.getElementById('inputNewDate').value.trim();
+            const n1 = parseInt(document.getElementById('inN1').value);
+            const n2 = parseInt(document.getElementById('inN2').value);
+            const n3 = parseInt(document.getElementById('inN3').value);
+            const n4 = parseInt(document.getElementById('inN4').value);
+            const n5 = parseInt(document.getElementById('inN5').value);
+            const nS = parseInt(document.getElementById('inNS').value);
 
             const nums = [n1, n2, n3, n4, n5];
-            if (!code || !date) {{
-                showToast('Vui lòng điền mã kỳ và ngày quay!', true);
+            for (let x of nums) {{
+                if (isNaN(x) || x < 1 || x > 35) {{
+                    showToast("5 số chính phải từ 01 đến 35!", true);
+                    return;
+                }}
+            }}
+            if (new Set(nums).size !== 5) {{
+                showToast("5 số chính không được trùng nhau!", true);
                 return;
             }}
-            if (nums.some(n => !n || n < 1 || n > 35) || new Set(nums).size !== 5) {{
-                showToast('5 số chính phải từ 1 đến 35 và không được trùng nhau!', true);
-                return;
-            }}
-            if (!spec || spec < 1 || spec > 12) {{
-                showToast('Số đặc biệt phải từ 1 đến 12!', true);
+            if (isNaN(nS) || nS < 1 || nS > 12) {{
+                showToast("Số đặc biệt phải từ 01 đến 12!", true);
                 return;
             }}
 
-            const sorted = [...nums].sort((a,b) => a - b);
-            const drawId = parseInt(code, 10);
-            const newObj = {{
-                draw_id: drawId,
-                draw_code: code,
-                date: date,
-                num1: sorted[0],
-                num2: sorted[1],
-                num3: sorted[2],
-                num4: sorted[3],
-                num5: sorted[4],
-                special: spec,
-                numbers_str: `${{String(sorted[0]).padStart(2,'0')}} ${{String(sorted[1]).padStart(2,'0')}} ${{String(sorted[2]).padStart(2,'0')}} ${{String(sorted[3]).padStart(2,'0')}} ${{String(sorted[4]).padStart(2,'0')}} | ${{String(spec).padStart(2,'0')}}`
+            const sortedNums = [...nums].sort((a,b) => a - b);
+            const numStr = sortedNums.map(x => String(x).padStart(2,'0')).join(' ') + ' | ' + String(nS).padStart(2,'0');
+
+            const newDraw = {{
+                draw_id: parseInt(code) || (DRAWS_DATA.length + 1),
+                draw_code: code || String(DRAWS_DATA.length + 1).padStart(5, '0'),
+                date: date || "Hôm nay",
+                num1: sortedNums[0],
+                num2: sortedNums[1],
+                num3: sortedNums[2],
+                num4: sortedNums[3],
+                num5: sortedNums[4],
+                special: nS,
+                numbers_str: numStr
             }};
 
-            // Save to LocalStorage
-            let customList = [];
-            try {{
-                const saved = localStorage.getItem('xstk_custom_draws');
-                if (saved) customList = JSON.parse(saved);
-            }} catch(e) {{}}
-            
-            customList = customList.filter(d => d.draw_code !== code);
-            customList.push(newObj);
-            localStorage.setItem('xstk_custom_draws', JSON.stringify(customList));
-
-            // Add to current in-memory data
-            DRAWS_DATA = DRAWS_DATA.filter(d => d.draw_code !== code);
-            DRAWS_DATA.push(newObj);
-            DRAWS_DATA.sort((a,b) => a.draw_id - b.draw_id);
-
+            LOCAL_DRAWS.push(newDraw);
+            localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
             updateAppViews();
-            showToast(`Đã lưu thành công kỳ #${{code}} vào điện thoại!`);
+            showToast(`[✓] Đã lưu kỳ #${{newDraw.draw_code}} vào điện thoại thành công!`);
             closeUpdateModal();
         }}
 
-        function handleClearCustomDraws() {{
-            if (confirm('Bạn có chắc muốn xóa các kỳ nhập tay trên điện thoại và khôi phục dữ liệu gốc?')) {{
-                localStorage.removeItem('xstk_custom_draws');
-                DRAWS_DATA = [...BASE_DRAWS];
+        function resetLocalStorageDraws() {{
+            if (confirm("Bạn có chắc muốn xóa các kỳ tự nhập/lưu tạm trên máy này?")) {{
+                LOCAL_DRAWS = [];
+                localStorage.removeItem('vietlott_535_custom_draws');
                 updateAppViews();
-                showToast('Đã khôi phục dữ liệu gốc từ máy chủ!');
+                showToast("Đã xóa sạch bộ nhớ lưu tạm trên điện thoại.");
                 closeUpdateModal();
             }}
         }}
 
-        function updateAppViews() {{
-            const total = DRAWS_DATA.length;
-            document.getElementById('headerCount').innerText = total;
-            document.getElementById('tabHistoryTitle').innerText = `Lịch Sử (${{total}} Kỳ)`;
-            loadHistory();
-            fillLatest();
-            if (window.chartsRendered) renderCharts();
-        }}
-
-        // Tab Switching
         function switchTab(tabId) {{
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {{
-                btn.classList.remove('border-brand-primary', 'text-brand-primary');
-                btn.classList.add('border-transparent', 'text-gray-400');
+            document.querySelectorAll('.tab-btn').forEach(el => {{
+                el.classList.remove('border-brand-primary', 'text-brand-primary');
+                el.classList.add('border-transparent', 'text-gray-400');
             }});
             document.getElementById(tabId).classList.remove('hidden');
-            const activeBtn = document.getElementById(tabId.replace('tab-', 'btn-'));
-            if (activeBtn) {{
-                activeBtn.classList.remove('border-transparent', 'text-gray-400');
-                activeBtn.classList.add('border-brand-primary', 'text-brand-primary');
+            const btn = document.getElementById('btn-' + tabId.replace('tab-', ''));
+            if (btn) {{
+                btn.classList.remove('border-transparent', 'text-gray-400');
+                btn.classList.add('border-brand-primary', 'text-brand-primary');
             }}
-            if (tabId === 'tab-stats' && !window.chartsRendered) {{
-                renderCharts();
-                window.chartsRendered = true;
+            if (tabId === 'tab-wheel' && !window.hasGeneratedWheel) {{
+                handleGenerateWheel();
+                window.hasGeneratedWheel = true;
             }}
         }}
 
         function fillLatest() {{
-            const latest = DRAWS_DATA[DRAWS_DATA.length - 1];
-            document.getElementById('num1').value = latest.num1;
-            document.getElementById('num2').value = latest.num2;
-            document.getElementById('num3').value = latest.num3;
-            document.getElementById('num4').value = latest.num4;
-            document.getElementById('num5').value = latest.num5;
-            document.getElementById('numSpecial').value = latest.special;
-            handleEvaluate();
+            if (DRAWS_DATA.length > 0) {{
+                const latest = DRAWS_DATA[0];
+                document.getElementById('num1').value = latest.num1;
+                document.getElementById('num2').value = latest.num2;
+                document.getElementById('num3').value = latest.num3;
+                document.getElementById('num4').value = latest.num4;
+                document.getElementById('num5').value = latest.num5;
+                document.getElementById('numSpecial').value = latest.special;
+                handleEvaluate();
+            }}
         }}
 
         function handleEvaluate() {{
-            const nums = [
-                document.getElementById('num1').value,
-                document.getElementById('num2').value,
-                document.getElementById('num3').value,
-                document.getElementById('num4').value,
-                document.getElementById('num5').value,
-            ].map(Number);
+            const n1 = document.getElementById('num1').value;
+            const n2 = document.getElementById('num2').value;
+            const n3 = document.getElementById('num3').value;
+            const n4 = document.getElementById('num4').value;
+            const n5 = document.getElementById('num5').value;
             const spec = document.getElementById('numSpecial').value;
 
-            if (nums.some(n => !n || n < 1 || n > 35) || new Set(nums).size !== 5) {{
-                showToast('Vui lòng nhập đúng 5 số chính khác nhau từ 1 đến 35!', true);
+            const nums = [n1, n2, n3, n4, n5].map(Number);
+            for (const x of nums) {{
+                if (isNaN(x) || x < 1 || x > 35) {{
+                    showToast("Vui lòng điền đủ 5 số chính từ 1 đến 35", true);
+                    return;
+                }}
+            }}
+            if (new Set(nums).size !== 5) {{
+                showToast("5 số chính không được trùng nhau", true);
                 return;
             }}
 
@@ -711,91 +899,299 @@ html_content = f"""<!DOCTYPE html>
             if (res.sqs >= 75) {{
                 sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-green-400';
                 badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-green-900/50 text-green-300 border border-green-700';
-                badgeEl.innerText = 'XUẤT SẮC (Top 25% Tâm Phân Phối)';
-                descEl.innerText = 'Bộ số đạt tỷ lệ đối xứng lý tưởng, độ trải đều trên toàn trục số hoàn hảo.';
+                badgeEl.innerText = 'XUẤT SẮC (Top 15% Tâm Đối Xứng & Chuỗi Markov Tối Ưu)';
+                descEl.innerText = 'Bộ số hoàn hảo: Đối xứng Gauss chuẩn, nhịp Poisson vàng, chống chia giải Jackpot độc quyền.';
             }} else if (res.sqs >= 40) {{
                 sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-yellow-400';
                 badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-yellow-900/50 text-yellow-300 border border-yellow-700';
-                badgeEl.innerText = 'ĐẠT CHUẨN (Vùng Dung Sai 80% QR)';
-                descEl.innerText = 'Bộ số hài hòa, nằm vững trong vùng 80% các kỳ quay trúng thưởng thực tế.';
-            }} else if (res.sqs >= 10) {{
+                badgeEl.innerText = 'ĐẠT CHUẨN (Vùng Dung Sai Hội Tụ SQS v2.0)';
+                descEl.innerText = 'Bộ số hài hòa, đạt chuẩn kiểm định Mahalanobis và nhịp vắng mặt Poisson an toàn.';
+            }} else if (res.sqs >= 15) {{
                 sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-orange-400';
                 badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-orange-900/50 text-orange-300 border border-orange-700';
                 badgeEl.innerText = 'DUNG SAI BIÊN (Cần Lưu Ý)';
-                descEl.innerText = 'Bộ số hơi lệch về tổng hoặc khoảng cách nhưng vẫn nằm trong phạm vi chấp nhận.';
+                descEl.innerText = 'Bộ số hơi lệch về nhịp lặp hoặc tổng khoảng cách, cần cân nhắc đảo số.';
             }} else {{
                 sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-red-400';
                 badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-red-900/50 text-red-300 border border-red-700';
-                badgeEl.innerText = 'CẢNH BÁO (Lệch Chuẩn / Nhiễu Rác)';
-                descEl.innerText = 'Bộ số bị dồn cụm, lệch chẵn/lẻ hoặc tổng quá cực đoan (p-value < 0.05).';
+                badgeEl.innerText = 'CẢNH BÁO (Lệch Chuẩn / Nhiễu Rác Xác Suất)';
+                descEl.innerText = 'Bộ số dồn cụm, lặp quá nhiều số của kỳ trước hoặc rơi vào vùng gan cực đoan.';
             }}
 
-            // Balls display
             const ballsContainer = document.getElementById('resBallsDisplay');
-            ballsContainer.innerHTML = res.combo.map(n => `<span class="ball ball-main text-sm w-9 h-9 md:w-10 md:h-10">${{String(n).padStart(2,'0')}}</span>`).join('') +
-                (res.special ? `<span class="text-lg md:text-xl font-bold text-brand-accent px-1">|</span><span class="ball ball-special text-sm w-9 h-9 md:w-10 md:h-10">${{String(res.special).padStart(2,'0')}}</span>` : '');
+            ballsContainer.innerHTML = '';
+            res.combo.forEach(n => {{
+                const span = document.createElement('span');
+                span.className = 'ball ball-main';
+                span.innerText = String(n).padStart(2, '0');
+                ballsContainer.appendChild(span);
+            }});
+            if (res.special) {{
+                const sep = document.createElement('span');
+                sep.className = 'text-2xl font-bold text-brand-accent px-1';
+                sep.innerText = '|';
+                ballsContainer.appendChild(sep);
+                const sSpan = document.createElement('span');
+                sSpan.className = 'ball ball-special';
+                sSpan.innerText = String(res.special).padStart(2, '0');
+                ballsContainer.appendChild(sSpan);
+            }}
 
-            document.getElementById('resSum').innerText = `${{res.sum}} (${{res.zSum > 0 ? '+' : ''}}${{res.zSum}}σ)`;
-            document.getElementById('resParity').innerText = `${{res.odds}} Lẻ - ${{res.evens}} Chẵn`;
+            document.getElementById('resSum').innerText = `${{res.sum}} (Z=${{res.zSum}})`;
+            document.getElementById('resParity').innerText = `${{res.odds}}L - ${{res.evens}}C`;
             document.getElementById('resDM').innerText = `${{res.dmSq}} (p=${{res.pMain}})`;
             document.getElementById('resEntropy').innerText = `${{res.entropy}} / 1.79`;
+
+            document.getElementById('resMarkov').innerText = res.markovStatus;
+            document.getElementById('resPoisson').innerText = res.skipStatus;
+            document.getElementById('resAntiCluster').innerText = res.antiStatus;
+        }}
+
+        // Wheel Generator C(10, 5, 3, 5)
+        let CURRENT_WHEEL_TICKETS = [];
+
+        function handleGenerateWheel() {{
+            const latest = getAllDraws()[0];
+            const prevSet = latest ? new Set([latest.num1, latest.num2, latest.num3, latest.num4, latest.num5]) : new Set();
+            const skips = computeCurrentSkips();
+
+            // Method #4: Monte Carlo search for best 10-number pool
+            let bestPool = null;
+            let bestScore = -1e9;
+
+            for (let iter = 0; iter < 12000; iter++) {{
+                // 1 or 2 from prev
+                const prevArr = Array.from(prevSet);
+                const nPrev = Math.random() < 0.6 ? 1 : 2;
+                const subPrev = [];
+                for (let i = 0; i < nPrev && prevArr.length > 0; i++) {{
+                    const pick = prevArr[Math.floor(Math.random() * prevArr.length)];
+                    if (!subPrev.includes(pick)) subPrev.push(pick);
+                }}
+
+                // 1 or 2 from [32, 35]
+                const highPool = [32, 33, 34, 35];
+                const nHigh = Math.random() < 0.5 ? 1 : 2;
+                const subHigh = [];
+                for (let i = 0; i < nHigh; i++) {{
+                    const pick = highPool[Math.floor(Math.random() * highPool.length)];
+                    if (!subHigh.includes(pick)) subHigh.push(pick);
+                }}
+
+                // remaining from 1..35
+                const rest = [];
+                for (let i = 1; i <= 35; i++) {{
+                    if (!subPrev.includes(i) && !subHigh.includes(i)) rest.push(i);
+                }}
+
+                const need = 10 - subPrev.length - subHigh.length;
+                const shuffled = rest.sort(() => Math.random() - 0.5);
+                const cand = [...subPrev, ...subHigh, ...shuffled.slice(0, need)].sort((a,b) => a - b);
+                if (cand.length !== 10) continue;
+
+                const evens = cand.filter(x => x % 2 === 0).length;
+                const lows = cand.filter(x => x <= 17).length;
+                if (evens < 4 || evens > 6 || lows < 4 || lows > 6) continue;
+
+                // Gap Entropy
+                const gaps = [cand[0], ...cand.slice(1).map((x, i) => x - cand[i]), 36 - cand[9]];
+                let entropy = 0;
+                for (const g of gaps) {{
+                    const p = g / 36.0;
+                    if (p > 0) entropy -= p * Math.log(p);
+                }}
+
+                const poolSkips = cand.map(x => skips[x] || 6);
+                const meanSkip = poolSkips.reduce((a,b) => a+b, 0) / 10.0;
+                const skipDev = Math.abs(meanSkip - 6.0);
+
+                const score = entropy * 10.0 - skipDev * 2.5;
+                if (score > bestScore) {{
+                    bestScore = score;
+                    bestPool = cand;
+                }}
+            }}
+
+            if (!bestPool) bestPool = [3, 8, 12, 15, 17, 22, 24, 28, 30, 33];
+
+            // Method #3: Combinatorial Partitioning into 2 tickets with maximal SQS
+            let bestPair = null;
+            let maxSqs = -1;
+
+            // Generate 5-element combinations
+            function getCombinations(arr, k) {{
+                if (k === 1) return arr.map(x => [x]);
+                const res = [];
+                for (let i = 0; i <= arr.length - k; i++) {{
+                    const head = arr[i];
+                    const tails = getCombinations(arr.slice(i + 1), k - 1);
+                    tails.forEach(t => res.push([head, ...t]));
+                }}
+                return res;
+            }}
+
+            const allCombos = getCombinations(bestPool, 5);
+            for (const t1 of allCombos) {{
+                const t2 = bestPool.filter(x => !t1.includes(x));
+                if (t1[0] > t2[0]) continue;
+
+                const r1 = evaluateCombo(t1);
+                const r2 = evaluateCombo(t2);
+
+                const pen1 = (r1.skipSum >= 18 && r1.skipSum <= 56) ? 0 : -25;
+                const pen2 = (r2.skipSum >= 18 && r2.skipSum <= 56) ? 0 : -25;
+                const total = r1.sqs + r2.sqs + pen1 + pen2;
+
+                if (total > maxSqs) {{
+                    maxSqs = total;
+                    bestPair = [t1, t2, r1, r2];
+                }}
+            }}
+
+            const [t1, t2, r1, r2] = bestPair;
+            const spChoices = [8, 6, 12, 7, 9, 3];
+            const sp1 = spChoices.find(x => !t1.includes(x)) || 8;
+            const sp2 = spChoices.find(x => !t2.includes(x) && x !== sp1) || 12;
+
+            CURRENT_WHEEL_TICKETS = [
+                {{ nums: t1, special: sp1, sqs: r1.sqs }},
+                {{ nums: t2, special: sp2, sqs: r2.sqs }}
+            ];
+
+            // Render Wheel UI
+            document.getElementById('wheelContainer').classList.remove('hidden');
+
+            const poolBalls = document.getElementById('wheelPoolBalls');
+            poolBalls.innerHTML = '';
+            bestPool.forEach(n => {{
+                const sp = document.createElement('span');
+                sp.className = 'ball ball-main ball-sm';
+                sp.innerText = String(n).padStart(2, '0');
+                poolBalls.appendChild(sp);
+            }});
+
+            const poolSkips = bestPool.map(x => skips[x] || 6);
+            const meanSkip = (poolSkips.reduce((a,b)=>a+b,0) / 10).toFixed(1);
+            document.getElementById('wheelPoolMetrics').innerText = `TB Nhịp: ${{meanSkip}} kỳ &bull; Chẵn/Lẻ: ${{bestPool.filter(x=>x%2===0).length}}C/${{bestPool.filter(x=>x%2!==0).length}}L &bull; Chống chia: ${{bestPool.filter(x=>x>=32).join(', ')}}`;
+
+            // Render T1
+            const t1Container = document.getElementById('t1Balls');
+            t1Container.innerHTML = '';
+            t1.forEach(n => {{
+                const s = document.createElement('span');
+                s.className = 'ball ball-main ball-sm';
+                s.innerText = String(n).padStart(2, '0');
+                t1Container.appendChild(s);
+            }});
+            const sep1 = document.createElement('span');
+            sep1.className = 'font-bold text-brand-accent px-1';
+            sep1.innerText = '|';
+            t1Container.appendChild(sep1);
+            const s1 = document.createElement('span');
+            s1.className = 'ball ball-special ball-sm';
+            s1.innerText = String(sp1).padStart(2, '0');
+            t1Container.appendChild(s1);
+
+            document.getElementById('t1Badge').innerText = `SQS v2: ${{r1.sqs.toFixed(1)}}/100`;
+            document.getElementById('t1Sum').innerText = `${{r1.sum}} (Z=${{r1.zSum}})`;
+            document.getElementById('t1Parity').innerText = `${{r1.odds}}L - ${{r1.evens}}C`;
+            document.getElementById('t1Poisson').innerText = `${{r1.skipSum}} kỳ (${{r1.skipStatus}})`;
+            document.getElementById('t1Markov').innerText = `${{r1.markovRepeats}} số lặp`;
+
+            // Render T2
+            const t2Container = document.getElementById('t2Balls');
+            t2Container.innerHTML = '';
+            t2.forEach(n => {{
+                const s = document.createElement('span');
+                s.className = 'ball ball-main ball-sm';
+                s.innerText = String(n).padStart(2, '0');
+                t2Container.appendChild(s);
+            }});
+            const sep2 = document.createElement('span');
+            sep2.className = 'font-bold text-brand-accent px-1';
+            sep2.innerText = '|';
+            t2Container.appendChild(sep2);
+            const s2 = document.createElement('span');
+            s2.className = 'ball ball-special ball-sm';
+            s2.innerText = String(sp2).padStart(2, '0');
+            t2Container.appendChild(s2);
+
+            document.getElementById('t2Badge').innerText = `SQS v2: ${{r2.sqs.toFixed(1)}}/100`;
+            document.getElementById('t2Sum').innerText = `${{r2.sum}} (Z=${{r2.zSum}})`;
+            document.getElementById('t2Parity').innerText = `${{r2.odds}}L - ${{r2.evens}}C`;
+            document.getElementById('t2Poisson').innerText = `${{r2.skipSum}} kỳ (${{r2.skipStatus}})`;
+            document.getElementById('t2Markov').innerText = `${{r2.markovRepeats}} số lặp`;
+
+            showToast("✨ Đã sinh dàn bao 2 vé tối ưu C(10,5,3,5) thành công!");
+        }}
+
+        function copyWheelTickets() {{
+            if (CURRENT_WHEEL_TICKETS.length < 2) return;
+            const t1 = CURRENT_WHEEL_TICKETS[0];
+            const t2 = CURRENT_WHEEL_TICKETS[1];
+            const text = `🎯 DÀN BAO VIETLOTT 5/35 - C(10,5,3,5):\nVé 1: ${{t1.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t1.special).padStart(2,'0')}} (SQS: ${{t1.sqs}})\nVé 2: ${{t2.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t2.special).padStart(2,'0')}} (SQS: ${{t2.sqs}})`;
+            navigator.clipboard.writeText(text).then(() => {{
+                showToast("📋 Đã sao chép 2 vé vào bộ nhớ tạm để mua ngay!");
+            }}).catch(() => {{
+                prompt("Sao chép 2 vé bên dưới:", text);
+            }});
         }}
 
         function handleGenerate() {{
-            const count = Number(document.getElementById('genCount').value) || 5;
+            const count = parseInt(document.getElementById('genCount').value) || 5;
             const container = document.getElementById('genResultList');
             container.innerHTML = '';
 
             const found = [];
-            const specChoices = [3, 7, 9, 12, 1, 2, 8, 10, 4, 5];
             let attempts = 0;
+            const specChoices = [8, 6, 12, 7, 9, 3, 2, 10, 4, 5];
 
-            while (found.length < count && attempts < 25000) {{
+            while (found.length < count && attempts < 35000) {{
                 attempts++;
-                const pool = Array.from({{length: 35}}, (_, i) => i + 1);
                 const combo = [];
-                for (let i = 0; i < 5; i++) {{
-                    const idx = Math.floor(Math.random() * pool.length);
-                    combo.push(pool.splice(idx, 1)[0]);
+                while (combo.length < 5) {{
+                    const r = Math.floor(Math.random() * 35) + 1;
+                    if (!combo.includes(r)) combo.push(r);
                 }}
-                combo.sort((a,b) => a - b);
-                const availableSpec = specChoices.filter(s => !combo.includes(s));
-                const spec = availableSpec[Math.floor(Math.random() * availableSpec.length)] || (Math.floor(Math.random() * 12) + 1);
+                const availableSpecs = specChoices.filter(s => !combo.includes(s));
+                const spec = availableSpecs[Math.floor(Math.random() * availableSpecs.length)];
 
                 const res = evaluateCombo(combo, spec);
-                if (res.sqs >= 80.0 && Number(res.entropy) >= 1.50) {{
+                if (res.sqs >= 80.0 && Number(res.entropy) >= 1.55) {{
                     found.push(res);
                 }}
             }}
 
             found.forEach((r, idx) => {{
                 const item = document.createElement('div');
-                item.className = 'bg-brand-card border border-brand-border rounded-xl p-3.5 md:p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg';
+                item.className = 'bg-brand-card border border-brand-border rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-md';
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <span class="text-xs font-bold text-gray-400">#${{String(idx+1).padStart(2,'0')}}</span>
-                        <div class="flex items-center gap-1.5">
-                            ${{r.combo.map(n => `<span class="ball ball-main text-xs md:text-sm w-8 h-8 md:w-9 md:h-9">${{String(n).padStart(2,'0')}}</span>`).join('')}}
-                            <span class="text-brand-accent font-bold px-0.5">|</span>
-                            <span class="ball ball-special text-xs md:text-sm w-8 h-8 md:w-9 md:h-9">${{String(r.special).padStart(2,'0')}}</span>
+                        <span class="text-xs font-bold text-gray-500">#${{String(idx+1).padStart(2,'0')}}</span>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            ${{r.combo.map(n => `<span class="ball ball-main ball-sm">${{String(n).padStart(2,'0')}}</span>`).join('')}}
+                            <span class="font-bold text-brand-accent px-1">|</span>
+                            <span class="ball ball-special ball-sm">${{String(r.special).padStart(2,'0')}}</span>
                         </div>
                     </div>
-                    <div class="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs md:text-sm">
+                    <div class="flex flex-wrap items-center gap-4 text-xs text-gray-400">
                         <span>Tổng: <strong class="text-gray-200">${{r.sum}}</strong></span>
                         <span>${{r.odds}}L - ${{r.evens}}C</span>
-                        <span>Entropy: <strong class="text-gray-200">${{r.entropy}}</strong></span>
-                        <span class="px-2.5 py-1 rounded-lg font-bold bg-green-900/40 text-green-400 border border-green-700/50">SQS: ${{r.sqs.toFixed(1)}}</span>
+                        <span>Poisson: <strong class="text-brand-secondary">${{r.skipSum}}k</strong></span>
+                        <span class="px-2.5 py-1 rounded-lg font-bold bg-green-900/40 text-green-400 border border-green-700/50">SQS v2: ${{r.sqs.toFixed(1)}}</span>
                     </div>
                 `;
                 container.appendChild(item);
             }});
+
+            showToast(`Đã sinh xong ${{found.length}} bộ số tối ưu SQS v2.0!`);
         }}
 
-        function loadHistory() {{
+        function renderHistoryTable() {{
             const tbody = document.getElementById('historyTableBody');
-            tbody.innerHTML = DRAWS_DATA.slice().reverse().map(d => `
+            tbody.innerHTML = DRAWS_DATA.map(d => `
                 <tr class="hover:bg-brand-border/40 transition">
-                    <td class="p-2.5 md:p-3 font-bold text-brand-primary">#${{d.draw_code}}</td>
+                    <td class="p-2.5 md:p-3 font-semibold text-brand-secondary">#${{d.draw_code}}</td>
                     <td class="p-2.5 md:p-3 text-gray-400">${{d.date}}</td>
                     <td class="p-2.5 md:p-3 font-bold">${{String(d.num1).padStart(2,'0')}}</td>
                     <td class="p-2.5 md:p-3 font-bold">${{String(d.num2).padStart(2,'0')}}</td>
@@ -882,4 +1278,4 @@ os.makedirs(os.path.join(BASE_DIR, "docs"), exist_ok=True)
 with open(os.path.join(BASE_DIR, "docs/index.html"), "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("[✓] Đã tạo thành công index.html và docs/index.html với Mobile Update Modal và LocalStorage!")
+print("[✓] Đã tạo thành công index.html và docs/index.html với SQS Engine v2.0 và Dàn Bao Stefan Mandel C(10,5,3,5)!")

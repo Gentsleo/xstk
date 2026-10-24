@@ -124,6 +124,10 @@ case "$1" in
         shift
         python3 "$DIR/qr_filter.py" "$@"
         ;;
+    wheel)
+        shift
+        python3 "$DIR/qr_filter.py" --wheel "${1:-10}"
+        ;;
     gui)
         echo -e "${YELLOW}[*] Đang khởi chạy giao diện Desktop PyQt5...${NC}"
         "$DIR/.venv/bin/python" "$DIR/qt_app.py"
