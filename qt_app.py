@@ -13,7 +13,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
 
 # Import evaluation logic
-from qr_filter import evaluate_combination, MU, INV_COV, chi2_cdf
+from qr_filter import evaluate_combination, suggest_balanced
 
 BASE_DIR = "/home/tringuyen/xstk"
 DB_PATH = os.path.join(BASE_DIR, "vietlott_535.db")
@@ -36,7 +36,7 @@ class UpdateThread(QThread):
 class XSTKMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("XSTK - Vietlott Lotto 5/35 (Mô Hình Dung Sai QR & Mahalanobis)")
+        self.setWindowTitle("XSTK - Vietlott Lotto 5/35 (Thống kê mô tả)")
         self.resize(1100, 750)
         self.apply_theme()
         self.init_ui()
@@ -142,7 +142,7 @@ class XSTKMainWindow(QMainWindow):
 
         # Top Bar
         top_bar = QHBoxLayout()
-        title_label = QLabel("🎯 PHẦN MỀM ĐÁNH GIÁ & DỰ ĐOÁN XSTK VIETLOTT LOTTO 5/35")
+        title_label = QLabel("🎯 PHÂN TÍCH & GỢI Ý BỘ SỐ VIETLOTT LOTTO 5/35")
         title_label.setFont(QFont("Segoe UI", 16, QFont.Bold))
         title_label.setStyleSheet("color: #89b4fa;")
         
@@ -158,10 +158,10 @@ class XSTKMainWindow(QMainWindow):
         # Tabs
         self.tabs = QTabWidget()
         self.tabs.addTab(self.create_evaluate_tab(), "🔍 Đánh Giá Bộ Số")
-        self.tabs.addTab(self.create_generator_tab(), "⚡ Gợi Ý Bộ Số Tối Ưu")
-        self.tabs.addTab(self.create_history_tab(), "📊 Lịch Sử 954 Kỳ")
+        self.tabs.addTab(self.create_generator_tab(), "⚡ Gợi Ý Bộ Số Cân Đối")
+        self.tabs.addTab(self.create_history_tab(), "📊 Lịch Sử Kỳ Quay")
         self.tabs.addTab(self.create_charts_tab(), "📈 Biểu Đồ Thống Kê")
-        self.tabs.addTab(self.create_qr_theory_tab(), "📐 Lý Thuyết Mã QR")
+        self.tabs.addTab(self.create_qr_theory_tab(), "📐 Giải Thích Thống Kê")
         main_layout.addWidget(self.tabs)
 
     # ------------------ TAB 1: ĐÁNH GIÁ BỘ SỐ ------------------
@@ -206,7 +206,7 @@ class XSTKMainWindow(QMainWindow):
         layout.addWidget(input_group)
 
         # Result display
-        result_group = QGroupBox("Kết quả phân tích toán học & Đánh giá mô hình QR")
+        result_group = QGroupBox("Thống kê mô tả bộ số (không dự báo kết quả)")
         res_layout = QVBoxLayout(result_group)
 
         # Score card
@@ -265,32 +265,32 @@ class XSTKMainWindow(QMainWindow):
             self.lbl_score_val.setText(f"{sqs:>4.1f} / 100")
             if sqs >= 75:
                 self.lbl_score_val.setStyleSheet("color: #a6e3a1; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("XUẤT SẮC - Thuộc Top 25% Tâm Phân Phối")
+                self.lbl_grade.setText("Mức cân đối hình thức: cao")
                 self.lbl_grade.setStyleSheet("color: #a6e3a1; font-weight: bold;")
             elif sqs >= 40:
                 self.lbl_score_val.setStyleSheet("color: #f9e2af; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("ĐẠT CHUẨN - Nằm Trong Vùng Dung Sai 80% QR Code")
+                self.lbl_grade.setText("Mức cân đối hình thức: vừa")
                 self.lbl_grade.setStyleSheet("color: #f9e2af; font-weight: bold;")
             elif sqs >= 10:
                 self.lbl_score_val.setStyleSheet("color: #fab387; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("DUNG SAI BIÊN - Cần Xem Xét")
+                self.lbl_grade.setText("Mức cân đối hình thức: thấp")
                 self.lbl_grade.setStyleSheet("color: #fab387; font-weight: bold;")
             else:
                 self.lbl_score_val.setStyleSheet("color: #f38ba8; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("CẢNH BÁO - Bộ Số Dị Tật / Lệch Chuẩn Xác Suất")
+                self.lbl_grade.setText("Bộ số ít cân đối theo tiêu chí mô tả")
                 self.lbl_grade.setStyleSheet("color: #f38ba8; font-weight: bold;")
 
             sp = res.get("special_info")
             detail = [
                 f"=== CHI TIẾT ĐÁNH GIÁ TOÁN HỌC ===",
                 f"• Bộ số chính:                {' '.join(f'{x:02d}' for x in res['combo'])}",
-                f"• Tổng điểm (Sum):            {res['sum']} (Z-Score: {res['z_sum']:+}) [Lý thuyết: 90.0, Thực nghiệm: 91.1]",
+                f"• Tổng điểm (Sum):            {res['sum']} (Z-Score: {res['z_sum']:+})",
                 f"• Tỷ lệ Lẻ / Chẵn:            {res['odds']} Lẻ - {res['evens']} Chẵn",
                 f"• Tỷ lệ Tài / Xỉu:            {res['highs']} Cao (>=18) - {res['lows']} Thấp (<18)",
-                f"• Độ rộng bộ số (Span):       {res['span']} ({res['combo'][0]:02d} -> {res['combo'][-1]:02d}) [Lý tưởng: 18 - 32]",
+                f"• Độ rộng bộ số (Span):       {res['span']} ({res['combo'][0]:02d} -> {res['combo'][-1]:02d})",
                 f"• Cặp số liền kề:             {res['consecs']} cặp",
-                f"• Khoảng cách Mahalanobis:    D_M^2 = {res['dm_sq']} (k=5 bậc tự do)",
-                f"• Xác suất điển hình (p):     p = {res['p_val_main']:.4f} (Phân phối Chi-Square Chi2_5)",
+                f"• Khoảng cách Mahalanobis:    D_M^2 = {res['dm_sq']} (mô tả hình dạng bộ số)",
+                f"• Điểm tham chiếu χ²(5):      {res['p_val_main']:.4f} (xấp xỉ, không phải xác suất trúng)",
                 f"• Shannon Gap Entropy:        H = {res['gap_entropy']} / 1.79 ({res['entropy_pct']}% tối đa)",
             ]
             if sp:
@@ -298,12 +298,12 @@ class XSTKMainWindow(QMainWindow):
                     f"\n=== SỐ ĐẶC BIỆT ===",
                     f"• Số đặc biệt:                Số {sp['special']:02d} ({sp['parity']}, {sp['tier']})",
                     f"• Tần suất lịch sử:           {sp['observed_count']} lần (Kỳ vọng: {sp['expected_count']} | Z-Score: {sp['z_freq']:+})",
-                    f"• Tương quan với số chính:    {'Trùng lặp với số chính (xác suất 12.2%)' if sp['is_overlap'] else 'Không trùng số chính (xác suất 87.8% - Tối ưu)'}",
+                    f"• So với số chính:            {'Trùng một số chính' if sp['is_overlap'] else 'Không trùng số chính'} (không ảnh hưởng xác suất)",
                 ])
             detail.extend([
                 f"\n=== KẾT LUẬN ===",
-                f"• Điểm chất lượng chuẩn SQS:  {res['sqs']} / 100",
-                f"• Nhận định:                  {res['recommendation']}"
+                f"• SQS (mô tả 5 số chính):     {res['sqs']} / 100",
+                "• Mỗi bộ 5 số có cùng xác suất trúng chính: 1/324.632 mỗi kỳ quay độc lập."
             ])
             self.txt_eval_detail.setPlainText("\n".join(detail))
 
@@ -316,7 +316,7 @@ class XSTKMainWindow(QMainWindow):
         layout = QVBoxLayout(tab)
         layout.setSpacing(15)
 
-        ctrl_group = QGroupBox("Cấu hình tạo bộ số chuẩn xác suất")
+        ctrl_group = QGroupBox("Chọn bộ số cân đối về hình thức (không tăng xác suất trúng)")
         ctrl_layout = QHBoxLayout(ctrl_group)
         
         ctrl_layout.addWidget(QLabel("Số lượng bộ số cần tạo:"))
@@ -325,7 +325,7 @@ class XSTKMainWindow(QMainWindow):
         self.spin_count.setValue(5)
         ctrl_layout.addWidget(self.spin_count)
 
-        btn_gen = QPushButton("⚡ Tự Động Sinh Số Tối Ưu (SQS >= 80)")
+        btn_gen = QPushButton("⚡ Gợi Ý Bộ Số Cân Đối")
         btn_gen.clicked.connect(self.run_generation)
         ctrl_layout.addWidget(btn_gen)
         ctrl_layout.addStretch()
@@ -343,19 +343,7 @@ class XSTKMainWindow(QMainWindow):
 
     def run_generation(self):
         count = self.spin_count.value()
-        found = []
-        attempts = 0
-        spec_choices = [3, 7, 9, 12, 1, 2, 8, 10, 4, 5]
-
-        while len(found) < count and attempts < 25000:
-            attempts += 1
-            nums = sorted(random.sample(range(1, 36), 5))
-            available_specials = [s for s in spec_choices if s not in nums]
-            spec = random.choice(available_specials if available_specials else range(1, 13))
-            
-            res = evaluate_combination(nums, spec)
-            if res["sqs"] >= 80.0 and res["gap_entropy"] >= 1.50:
-                found.append(res)
+        found = suggest_balanced(count)
 
         self.table_gen.setRowCount(len(found))
         for row_idx, r in enumerate(found):
@@ -377,7 +365,7 @@ class XSTKMainWindow(QMainWindow):
             item_sqs.setForeground(QColor("#a6e3a1"))
             self.table_gen.setItem(row_idx, 6, item_sqs)
             
-            self.table_gen.setItem(row_idx, 7, QTableWidgetItem("XUẤT SẮC" if r['sqs'] >= 85 else "ĐẠT CHUẨN"))
+            self.table_gen.setItem(row_idx, 7, QTableWidgetItem("Cân đối hình thức"))
 
     # ------------------ TAB 3: LỊCH SỬ KỲ QUAY ------------------
     def create_history_tab(self):
@@ -475,56 +463,31 @@ class XSTKMainWindow(QMainWindow):
         else:
             self.lbl_chart_img.setText(f"Chưa có file biểu đồ {filename}.\nVui lòng chạy './xstk.sh plot' trước.")
 
-    # ------------------ TAB 5: LÝ THUYẾT MÃ QR ------------------
+    # ------------------ TAB 5: GIẢI THÍCH THỐNG KÊ ------------------
     def create_qr_theory_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         txt = QTextEdit()
         txt.setReadOnly(True)
         html = """
-        <h2 style='color: #89b4fa;'>📐 LÝ THUYẾT DUNG SAI MÃ QR (QR TOLERANCE ENGINE)</h2>
-        <p style='color: #a6adc8; font-size: 14px;'>
-        Mô hình lấy cảm hứng từ nguyên lý <b>Mã Sửa Sai (Reed-Solomon Level Q)</b> trong mã QR: 
-        <i>"Một mã QR bị mất hoặc nhòe 20% - 25% diện tích vẫn có thể quét thành công nhờ các Điểm Neo Bất Biến (Finder Patterns) và Vạch Nhịp Đồng Bộ (Timing Patterns)."</i>
-        </p>
-        <br>
-        <table border='1' cellpadding='8' style='border-collapse: collapse; border-color: #313244; color: #cdd6f4; width: 100%;'>
-            <tr style='background-color: #313244; color: #89b4fa;'>
-                <th>Thành phần Mã QR</th>
-                <th>Vai trò trong Mã QR</th>
-                <th>Tương ứng trong Vietlott 5/35</th>
-                <th>Công thức Toán học Áp dụng</th>
-            </tr>
-            <tr>
-                <td style='color: #f9e2af;'><b>Dung sai lỗi 20 - 25% (Level Q)</b></td>
-                <td>Mất 25% dữ liệu máy ảnh vẫn giải mã được</td>
-                <td>Vùng bao phủ 75 - 80% kỳ quay thực tế, lọc bỏ 70% bộ số rác</td>
-                <td>Phân phối Chi-Square &chi;<sup>2</sup>(5) với p &ge; 0.20 (D<sup>2</sup><sub>M</sub> &le; 7.09)</td>
-            </tr>
-            <tr>
-                <td style='color: #89b4fa;'><b>3 Ô vuông góc (Finder Patterns)</b></td>
-                <td>Điểm neo định vị toạ độ và góc xoay</td>
-                <td>Trọng tâm Tổng điểm (90), Cân bằng Chẵn/Lẻ (3:2, 2:3), Tài/Xỉu</td>
-                <td>Vector kỳ vọng &mu; = [91.1, 2.57, 2.62, 23.85, 0.58]<sup>T</sup></td>
-            </tr>
-            <tr>
-                <td style='color: #cba6f7;'><b>Ma trận khử nhiễu (Reed-Solomon)</b></td>
-                <td>Khử nhiễu đa chiều trên trường hữu hạn GF(2<sup>8</sup>)</td>
-                <td>Khử sạch đa cộng tuyến giữa Tổng và Số Lớn (Corr = +0.876)</td>
-                <td>Khoảng cách Mahalanobis: D<sup>2</sup><sub>M</sub> = (x - &mu;)<sup>T</sup> &Sigma;<sup>-1</sup> (x - &mu;)</td>
-            </tr>
-            <tr>
-                <td style='color: #a6e3a1;'><b>Vạch nhịp (Timing Patterns)</b></td>
-                <td>Đường xen kẽ sọc đen/trắng chống vón cục pixel</td>
-                <td>Đảm bảo 5 quả bóng trải đều khắp dải [1, 35], chống dồn cụm</td>
-                <td>Shannon Gap Entropy: H(Gaps) = -&Sigma; p<sub>i</sub> ln(p<sub>i</sub>)</td>
-            </tr>
-        </table>
-        <br>
-        <h3 style='color: #a6e3a1;'>🎯 Kết Luận Thực Nghiệm:</h3>
-        <p style='color: #cdd6f4;'>
-        Trong không gian 324,632 bộ số, thuật toán loại bỏ hoàn toàn các bộ số dị biệt (dồn cục, toàn chẵn/lẻ) và chỉ giữ lại những bộ số có điểm SQS &ge; 80 (thuộc Top Typical Set), bảo đảm tương thích tối đa với quy luật phân phối của máy quay thưởng.
-        </p>
+        <h2 style='color: #89b4fa;'>📐 THỐNG KÊ MÔ TẢ, KHÔNG DỰ ĐOÁN</h2>
+        <p>Mỗi kỳ quay là độc lập. Mỗi bộ 5 số chính cụ thể có cùng xác suất
+        trùng khớp 5 số chính: 1/C(35,5) = 1/324.632. Số đặc biệt được chọn
+        độc lập, đều trong 1–12; trùng số chính không phải là bất lợi.</p>
+        <p>SQS chỉ mô tả độ cân đối hình thức của 5 số chính, dựa trên các đặc trưng
+        tổng, chẵn/lẻ, cao/thấp, độ rộng và cặp liền kề. Khoảng cách Mahalanobis
+        dùng ma trận hiệp phương sai để xét các đặc trưng có tương quan;
+        điểm tham chiếu &chi;<sup>2</sup>(5) chỉ là xấp xỉ mô tả, không phải
+        xác suất trúng hay xếp hạng khả năng quay ra của một bộ số.</p>
+        <p>Entropy khoảng cách H = -&Sigma; p<sub>i</sub> ln(p<sub>i</sub>)
+        mô tả mức rải đều trên dải 1–35, không làm tăng cơ hội trúng.
+        Với 5 số chọn từ 1–35, sáu khoảng trống dương có tổng 36,
+        trung bình mỗi khoảng là 6.</p>
+        <p>Hai vé không giao nhau chỉ bảo đảm ít nhất một vé khớp
+        từ 3 số chính trở lên <b>nếu</b> cả 5 số trúng đều nằm trong
+        tập hợp 10 số của hai vé. Không có bảo đảm vô điều kiện:
+        xác suất ít nhất một vé khớp từ 3 số chính trở lên
+        là 9002/324632 cho một kỳ quay.</p>
         """
         txt.setHtml(html)
         layout.addWidget(txt)

@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """
-Mô hình Đánh giá Bộ số Vietlott 5/35 Nâng Cao - SQS Engine v2.0
-Kết hợp các trụ cột toán học và xác suất thực nghiệm:
-1. Khoảng cách Mahalanobis khử tương quan chéo (D_M^2 ~ Chi-Square 5 bậc tự do).
-2. Shannon Gap Entropy (Tối đa hóa độ phân tán khoảng cách giữa các số).
-3. Chuỗi Markov Chuyển Trạng Thái (Kiểm soát số lặp kỳ liền kề R <= 2).
-4. Phân Phối Nhịp Vắng Poisson (Kiểm soát tổng thời gian vắng mặt Skip-Sum trong [20, 54]).
-Kèm Ma Trận Bao Phủ Tối Thiểu (Covering Design C(10, 5, 3, 5) - Stefan Mandel / La Jolla).
-Loại bỏ hoàn toàn bias cưỡng ép dải số để bảo toàn 100% không gian xác suất trúng giải.
+Vietlott 5/35: điểm hình thái để chọn bộ số cân đối và dàn bao hai vé.
+Điểm số không phải xác suất trúng; mọi vé hợp lệ có cùng xác suất trong kỳ quay công bằng.
 """
 
 import sys
@@ -23,32 +17,25 @@ from itertools import combinations
 DB_PATH = os.path.join(os.path.dirname(__file__), "vietlott_535.db")
 JSON_PATH = os.path.join(os.path.dirname(__file__), "vietlott_535.json")
 
-# Vector kỳ vọng lý thuyết của 5 số trên tập {1..35}
-MU = [90.0, 2.4286, 2.5714, 22.6667, 0.5333]
-
-# Ma trận hiệp phương sai nghịch đảo INV_COV
+# Trung bình và nghịch đảo hiệp phương sai của toàn bộ C(35,5) tổ hợp đồng xác suất.
+MU = [90.0, 18/7, 18/7, 24.0, 4/7]
 INV_COV = [
-    [ 0.003115, -0.003889, -0.015241, -0.000628,  0.000109],
-    [-0.003889,  1.178201,  0.019385, -0.007621, -0.001325],
-    [-0.015241,  0.019385,  1.178201,  0.038102,  0.006627],
-    [-0.000628, -0.007621,  0.038102,  0.039625,  0.006892],
-    [ 0.000109, -0.001325,  0.006627,  0.006892,  2.083751]
+    [0.008922, -0.004452, -0.156333, -0.000572, -0.001458],
+    [-0.004452, 0.912853, 0.103882, -0.007780, 0.010327],
+    [-0.156333, 0.103882, 3.647779, 0.013338, 0.034020],
+    [-0.000572, -0.007780, 0.013338, 0.032009, 0.081643],
+    [-0.001458, 0.010327, 0.034020, 0.081643, 2.448486]
 ]
 
 def chi2_cdf(x, k=5):
-    """Hàm phân phối tích lũy (CDF) của Chi-Square k bậc tự do."""
+    """CDF chi bình phương 5 bậc tự do, dùng như thước đo hình thái xấp xỉ."""
+    if k != 5:
+        raise ValueError("Chỉ hỗ trợ 5 bậc tự do")
     if x <= 0:
         return 0.0
     s = x / 2.0
-    term = (s ** 1.5) * math.exp(-s) / 1.329340388179137
-    sum_t = term
-    curr = term
-    for i in range(1, 120):
-        curr *= s / (1.5 + i)
-        sum_t += curr
-        if curr < 1e-12:
-            break
-    return min(1.0, max(0.0, sum_t))
+    return min(1.0, max(0.0, math.erf(math.sqrt(s)) -
+        2 * math.sqrt(s / math.pi) * math.exp(-s) * (1 + 2*s/3)))
 
 def load_special_frequencies():
     """Tải tần suất xuất hiện thực tế của số đặc biệt (1-12)."""
@@ -102,14 +89,7 @@ def get_history_context():
     return latest_draw, current_skips
 
 def evaluate_combination(combo, special=None, context=None):
-    """
-    Đánh giá toàn diện 5+1 số theo SQS Engine v2.0 không thiên vị (Unbiased):
-    - Mahalanobis Distance D_M^2
-    - Shannon Gap Entropy
-    - Special Ball Z-Score
-    - Markov Repeat (R <= 2)
-    - Poisson Skip-Sum (20 <= S <= 54)
-    """
+    """Đánh giá hình thái bộ số; các thống kê lịch sử chỉ để tham khảo."""
     combo = sorted([int(x) for x in combo])
     if len(combo) != 5:
         raise ValueError("Cần đúng 5 số chính")
@@ -137,88 +117,51 @@ def evaluate_combination(combo, special=None, context=None):
     gap_entropy = -sum(p * math.log(p) for p in p_gaps)
     entropy_ratio = gap_entropy / math.log(6.0)
     
-    # 3. Đánh giá số đặc biệt (nếu có)
+    # Lồng cầu riêng: mọi số đặc biệt 1..12 đồng xác suất; chỉ báo cáo tần suất.
     special_info = None
-    p_val_special = 1.0
     if special is not None:
         special = int(special)
-        if not (1 <= special <= 12):
+        if not 1 <= special <= 12:
             raise ValueError(f"Số đặc biệt {special} phải nằm trong khoảng 1 - 12")
-            
         spec_freqs, total_draws = load_special_frequencies()
-        observed_cnt = spec_freqs.get(special, 0)
         expected_cnt = total_draws / 12.0
-        sigma_spec = math.sqrt(total_draws * (1.0/12.0) * (11.0/12.0))
-        z_spec = (observed_cnt - expected_cnt) / sigma_spec
-        
-        is_overlap = special in combo
-        overlap_mult = 0.6 if is_overlap else 1.0
-        dev_spec = abs(special - 6.5) / 3.452
-        p_val_special = math.exp(-0.5 * (dev_spec ** 2)) * overlap_mult
-        
+        sigma_spec = math.sqrt(total_draws * (1/12) * (11/12)) if total_draws else 1.0
+        observed_cnt = spec_freqs.get(special, 0)
         special_info = {
             "special": special,
-            "parity": "Lẻ" if special % 2 != 0 else "Chẵn",
+            "parity": "Lẻ" if special % 2 else "Chẵn",
             "tier": "Cao (7-12)" if special >= 7 else "Thấp (1-6)",
             "observed_count": observed_cnt,
             "expected_count": round(expected_cnt, 1),
-            "z_freq": round(z_spec, 2),
-            "is_overlap": is_overlap,
-            "score_spec": round(p_val_special * 100, 1)
+            "z_freq": round((observed_cnt - expected_cnt) / sigma_spec, 2),
+            "is_overlap": special in combo,
         }
 
-    # 4. SQS v1.0 Cơ sở
+    # SQS chỉ là chỉ số hình thái; không phải xác suất trúng.
     entropy_factor = min(1.0, max(0.0, (gap_entropy - 1.0) / (math.log(6.0) - 1.0)))
-    spec_factor = (0.8 + 0.2 * (special_info["score_spec"] / 100.0)) if special_info else 1.0
-    joint_prob = p_val_main * (0.8 + 0.2 * entropy_factor) * spec_factor
-    sqs_v1 = round(min(100.0, max(0.0, joint_prob * 100.0)), 1)
+    sqs_v1 = round(100 * p_val_main * (0.8 + 0.2 * entropy_factor), 1)
 
-    # 5. SQS v2.0 - Tích Hợp Động Học Lịch Sử & Kiểm Soát Rủi Ro
+    # Các thống kê kỳ trước không tham gia điểm cân đối.
     if context is None:
         latest_draw, current_skips = get_history_context()
     else:
         latest_draw, current_skips = context
 
-    # 5A. Chuỗi Markov Lặp Nhịp (Markov Chain Repeat)
-    markov_info = {"repeats": 0, "prev_code": "N/A", "status": "Không có dữ liệu", "mult": 1.0}
+    # Giao nhau với kỳ trước và thời gian vắng là thống kê mô tả, không dự đoán.
+    markov_info = {"repeats": 0, "prev_code": "N/A", "status": "Không có dữ liệu"}
     if latest_draw:
-        prev_nums = set([latest_draw[f"num{j}"] for j in range(1, 6)])
-        repeats = len(set(combo).intersection(prev_nums))
-        if repeats <= 2:
-            m_status = f"TỐI ƯU ({repeats} số lặp)"
-            m_mult = 1.0
-        elif repeats == 3:
-            m_status = "CẢNH BÁO (Lặp 3 số, P=1.2%)"
-            m_mult = 0.6
-        else:
-            m_status = f"NGUY HIỂM (Lặp {repeats} số, P=0%)"
-            m_mult = 0.2
+        prev_nums = {latest_draw[f"num{j}"] for j in range(1, 6)}
+        repeats = len(set(combo) & prev_nums)
         markov_info = {
             "repeats": repeats,
             "prev_code": latest_draw["draw_code"],
-            "status": m_status,
-            "mult": m_mult
+            "status": f"{repeats} số lặp kỳ trước (thống kê mô tả)"
         }
-
-    # 5B. Định Lý Nhịp Vắng Poisson (Skip-Sum)
     skip_sum = sum(current_skips.get(x, 6) for x in combo)
-    if 20 <= skip_sum <= 54:
-        s_status = f"VÙNG VÀNG POISSON ({skip_sum} kỳ)"
-        s_mult = 1.05
-    elif 15 <= skip_sum < 20 or 54 < skip_sum <= 65:
-        s_status = f"BIÊN DUNG SAI ({skip_sum} kỳ)"
-        s_mult = 1.0
-    elif skip_sum < 15:
-        s_status = f"QUÁ NÓNG ({skip_sum} kỳ < 15)"
-        s_mult = 0.85
-    else:
-        s_status = f"QUÁ NGUỘI / GAN ({skip_sum} kỳ > 65)"
-        s_mult = 0.80
     skip_info = {
         "skip_sum": skip_sum,
         "mean_skip": round(skip_sum / 5.0, 1),
-        "status": s_status,
-        "mult": s_mult
+        "status": f"Tổng vắng {skip_sum} kỳ (không dự báo)"
     }
 
     # 5C. Thông tin dải số cao (>= 32) mang tính mô tả, không áp đặt phạt điểm để tránh bias
@@ -227,30 +170,17 @@ def evaluate_combination(combo, special=None, context=None):
     anti_info = {
         "has_high_zone": has_high,
         "high_count": high_count,
-        "status": f"Dải cao: {high_count} số >= 32" if has_high else "Dải chuẩn: 5 số <= 31 (52% lịch sử)",
-        "mult": 1.0
+        "status": f"Có {high_count} số >= 32" if has_high else "Không có số >= 32"
     }
 
-    # Điểm SQS v2.0 tổng hợp hoàn toàn không thiên vị (Unbiased SQS v2.0)
-    sqs_v2 = round(min(100.0, max(0.0, sqs_v1 * markov_info["mult"] * skip_info["mult"])), 1)
-
-    # Phân hạng v2.0
-    if sqs_v2 >= 75.0:
-        grade = "XUẤT SẮC (Top 15% Tâm Đối Xứng & Chuỗi Markov Tối Ưu)"
-        color = "\033[0;32m"
-        rec = "Bộ số hoàn hảo: Đối xứng Gauss chuẩn, nhịp Poisson vàng, cấu trúc không gian tối ưu."
-    elif sqs_v2 >= 40.0:
-        grade = "ĐẠT CHUẨN (Vùng Dung Sai Hội Tụ SQS v2.0)"
-        color = "\033[1;33m"
-        rec = "Bộ số hài hòa, đạt chuẩn kiểm định Mahalanobis và nhịp vắng mặt Poisson an toàn."
-    elif sqs_v2 >= 15.0:
-        grade = "TRUNG BÌNH (Dung Sai Biên)"
-        color = "\033[0;33m"
-        rec = "Bộ số hơi lệch về nhịp lặp hoặc tổng khoảng cách, cần cân nhắc đảo số."
+    sqs_v2 = sqs_v1
+    if sqs_v2 >= 75:
+        grade, color = "CÂN ĐỐI", "\033[0;32m"
+    elif sqs_v2 >= 40:
+        grade, color = "TƯƠNG ĐỐI CÂN ĐỐI", "\033[1;33m"
     else:
-        grade = "CẢNH BÁO (Lệch Chuẩn / Nhiễu Rác Xác Suất)"
-        color = "\033[0;31m"
-        rec = "Bộ số dồn cụm, lặp quá nhiều số của kỳ trước hoặc rơi vào vùng gan cực đoan."
+        grade, color = "ÍT CÂN ĐỐI", "\033[0;33m"
+    rec = "Mỗi bộ số hợp lệ vẫn có cùng xác suất trúng nếu kỳ quay công bằng."
 
     return {
         "combo": combo,
@@ -286,153 +216,72 @@ def print_result(res):
     header_str = f"{combo_str} | ĐB: {sp['special']:02d}" if sp else combo_str
 
     print("=" * 72)
-    print(f"  PHÂN TÍCH BỘ SỐ VIETLOTT 5/35 - SQS ENGINE v2.0 (UNBIASED)")
+    print("  PHÂN TÍCH HÌNH THÁI BỘ SỐ (KHÔNG DỰ BÁO XÁC SUẤT TRÚNG)")
     print(f"  Bộ số: [ {header_str} ]")
     print("=" * 72)
-    print(f"1. KIỂM ĐỊNH HÌNH THÁI VÀ MAHALANOBIS (SQS v1.0):")
+    print("1. HÌNH THÁI VÀ KHOẢNG CÁCH MAHALANOBIS:")
     print(f"   • Tổng số:          {res['sum']:>3}  (Z-Score = {res['z_sum']:>+.2f}, Trung bình lý thuyết = 90)")
     print(f"   • Tỷ lệ Chẵn / Lẻ:  {res['evens']} Chẵn - {res['odds']} Lẻ (Chuẩn 2/3 hoặc 3/2)")
     print(f"   • Tỷ lệ Cao / Thấp: {res['highs']} Cao  - {res['lows']} Thấp (Ngưỡng phân cách: 18)")
     print(f"   • Khoảng trải rộng: {res['span']:>2} số  | Số cặp liên tiếp: {res['consecs']}")
-    print(f"   • Mahalanobis D_M^2:{res['dm_sq']:>6.2f} (p-value = {res['p_val_main']:.4f} trên Chi2(5))")
+    print(f"   • Mahalanobis D_M^2:{res['dm_sq']:>6.2f} (đuôi Chi2(5) xấp xỉ: {res['p_val_main']:.4f})")
     print(f"   • Shannon Gap H:    {res['gap_entropy']:>6.3f} ({res['entropy_pct']}% cực đại lý thuyết)")
     
     if sp:
-        print(f"\n2. ĐÁNH GIÁ SỐ ĐẶC BIỆT (#{sp['special']:02d}):")
-        print(f"   • Tần suất thực tế: {sp['observed_count']} lần (Kỳ vọng: {sp['expected_count']}, Z = {sp['z_freq']:+.2f})")
-        print(f"   • Điểm thành phần:  {sp['score_spec']:.1f}/100 | Trùng số chính: {'CÓ (Trừ điểm)' if sp['is_overlap'] else 'KHÔNG (Tối ưu)'}")
+        print(f"\n2. SỐ ĐẶC BIỆT (#{sp['special']:02d}):")
+        print(f"   • Tần suất lịch sử: {sp['observed_count']} lần (kỳ vọng: {sp['expected_count']}; Z={sp['z_freq']:+.2f})")
+        print(f"   • Mỗi số 01–12 đều có xác suất 1/12 ở kỳ sau nếu quay công bằng.")
 
     m = res['markov_info']
     s = res['skip_info']
     a = res['anti_info']
-    print(f"\n3. NÂNG CẤP ĐỘNG HỌC (SQS v2.0):")
-    print(f"   • Chuỗi Markov ({m['prev_code']}): {m['status']} (Hệ số: x{m['mult']:.2f})")
-    print(f"   • Nhịp vắng Poisson:     {s['status']} (Hệ số: x{s['mult']:.2f}, TB: {s['mean_skip']} kỳ/số)")
-    print(f"   • Cấu trúc dải số:       {a['status']}")
-
+    print(f"\n3. THỐNG KÊ MÔ TẢ (KHÔNG DỰ BÁO):")
+    print(f"   • Kỳ #{m['prev_code']}: {m['status']}")
+    print(f"   • Nhịp vắng hình học: {s['status']} (TB: {s['mean_skip']} kỳ/số)")
+    print(f"   • Cấu trúc dải số: {a['status']}")
     print("-" * 72)
-    print(f"• ĐIỂM SQS v1.0 NỀN TẢNG:      {res['sqs_v1']:>5.1f} / 100")
-    print(f"• ĐIỂM CHUẨN SQS v2.0 ĐA TẦNG: {res['color']}{res['sqs']:>5.1f} / 100{NC}")
+    print(f"• ĐIỂM CÂN ĐỐI HÌNH THÁI: {res['color']}{res['sqs']:>5.1f} / 100{NC}")
     print(f"• PHÂN LOẠI MÔ HÌNH:           {res['color']}{res['grade']}{NC}")
     print(f"• NHẬN ĐỊNH TOÁN HỌC:          {res['recommendation']}")
     print("=" * 72)
 
-def select_optimal_special_ball(combo, latest_draw=None, exclude_sp=None):
-    """
-    Bộ lọc số đặc biệt 3 tiêu chí:
-    1. Không trùng 5 số chính (chiếm 87.98% lịch sử).
-    2. Không lặp lại số ĐB kỳ trước (chiếm 90.77% lịch sử).
-    3. Nhịp vắng Poisson vàng [3, 18] và tần suất thực tế.
-    """
-    if exclude_sp is None:
-        exclude_sp = set()
-    prev_sp = latest_draw["special"] if latest_draw else None
-
-    draws = []
-    if os.path.exists(JSON_PATH):
-        try:
-            with open(JSON_PATH, "r", encoding="utf-8") as f:
-                draws = json.load(f)
-        except Exception:
-            pass
-
-    spec_skips = {i: len(draws) for i in range(1, 13)}
-    spec_counts = {i: 0 for i in range(1, 13)}
-    for idx, d in enumerate(reversed(draws)):
-        sp = d.get("special", 0)
-        if 1 <= sp <= 12:
-            if spec_skips[sp] == len(draws):
-                spec_skips[sp] = idx
-            spec_counts[sp] += 1
-
-    scores = {}
-    exp = len(draws) / 12.0
-    sigma = math.sqrt(len(draws) * (1/12) * (11/12)) if len(draws) > 0 else 1.0
-
-    for s in range(1, 13):
-        if s in combo:
-            continue
-        if prev_sp is not None and s == prev_sp:
-            continue
-        if s in exclude_sp:
-            continue
-            
-        sk = spec_skips[s]
-        if 3 <= sk <= 18:
-            skip_score = 1.0 - abs(sk - 11.0) / 20.0
-        elif sk < 3:
-            skip_score = 0.6
-        else:
-            skip_score = 0.5 - min(0.3, (sk - 18) / 30.0)
-            
-        z = (spec_counts[s] - exp) / sigma
-        freq_score = 0.5 + 0.1 * z
-        total_score = skip_score * 0.6 + freq_score * 0.4
-        scores[s] = total_score
-
-    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    if not ranked:
-        return 7
-    top_candidates = ranked[:min(4, len(ranked))]
-    cands = [x[0] for x in top_candidates]
-    weights = [max(0.01, x[1] ** 2) for x in top_candidates]
-    return random.choices(cands, weights=weights, k=1)[0]
+def select_optimal_special_ball(exclude_sp=None):
+    """Chọn đều từ lồng 12 bóng; dùng hai số khác nhau để phủ thêm kết quả."""
+    excluded = exclude_sp or set()
+    return random.choice([s for s in range(1, 13) if s not in excluded])
 
 def generate_covering_wheel(v=10):
-    """
-    Sinh Dàn Bao Tổ Hợp Tối Thiểu (Combinatorial Covering Design C(v, 5, 3, 5))
-    Lấy ngẫu nhiên tự nhiên từ toàn bộ không gian số (không ép buộc [32, 35])
-    đảm bảo phân phối đồng nhất và không thiên vị.
-    """
+    """Chọn bể 10 số trải đều, chia thành hai vé rời để phủ tổ hợp có điều kiện."""
     latest_draw, current_skips = get_history_context()
     prev_winning = set([latest_draw[f"num{j}"] for j in range(1, 6)]) if latest_draw else set()
     
-    print(f"[*] Đang thực thi chọn Bể {v} số tối ưu toàn phần không thiên vị...")
-    print(f"    - Căn cứ kỳ mới nhất #{latest_draw['draw_code'] if latest_draw else 'N/A'}: {sorted(list(prev_winning))}")
-    print(f"    - Tối ưu hóa Entropy + Nhịp vắng Poisson...")
+    print(f"[*] Đang chọn bể 10 số trải đều và chia thành hai vé cân đối...")
 
     best_pool = None
     best_score = -1e9
-    random.seed(os.getpid() ^ int(math.pi * 1e6))
+    # Mỗi lần chạy lấy mẫu độc lập; không phụ thuộc kỳ trước.
 
     for _ in range(40000):
-        # 1 hoặc 2 số từ kỳ trước (Markov sweet spot)
-        n_prev = random.choice([1, 2]) if len(prev_winning) >= 2 else 1
-        sub_prev = random.sample(list(prev_winning), n_prev) if prev_winning else []
-        
-        # Chọn các số còn lại từ toàn bộ 35 số tự nhiên không gán ép
-        rem_candidates = [x for x in range(1, 36) if x not in sub_prev]
-        need = v - len(sub_prev)
-        sub_rem = random.sample(rem_candidates, need)
-        
-        cand = set(sub_prev + sub_rem)
-        if len(cand) != v:
-            continue
-            
-        cand_list = sorted(list(cand))
+        cand_list = sorted(random.sample(range(1, 36), 10))
+        # Không cưỡng ép chọn số từ kỳ trước.
         evens = sum(1 for x in cand_list if x % 2 == 0)
         lows = sum(1 for x in cand_list if x <= 17)
         if evens not in (v//2 - 1, v//2, v//2 + 1) or lows not in (v//2 - 1, v//2, v//2 + 1):
             continue
             
         # Shannon Gap Entropy của bể
-        gaps = [cand_list[0]] + [cand_list[i+1] - cand_list[i] for i in range(v-1)] + [36 - cand_list[-1]]
-        p_gaps = [g / 36.0 for g in gaps if g > 0]
+        gaps = [cand_list[0]] + [cand_list[i+1] - cand_list[i] for i in range(9)] + [36 - cand_list[-1]]
+        p_gaps = [g / 36.0 for g in gaps]
         entropy = -sum(p * math.log(p) for p in p_gaps)
         
-        # Nhịp vắng trung bình
-        skips = [current_skips.get(x, 6) for x in cand_list]
-        mean_skip = statistics.mean(skips)
-        skip_dev = abs(mean_skip - 6.0)
-        
-        score = entropy * 10.0 - skip_dev * 2.5
+        score = entropy
         if score > best_score:
             best_score = score
             best_pool = cand_list
 
-    print(f"\n[✓] ĐÃ CHỌN THÀNH CÔNG BỂ {v} SỐ TỐI ƯU TỰ NHIÊN:")
+    print(f"\n[✓] BỂ 10 SỐ TRẢI ĐỀU NHẤT TRONG MẪU ĐÃ THỬ:")
     print(f"    Bể số V = [ {' '.join(f'{x:02d}' for x in best_pool)} ]")
-    print(f"    • Điểm toán học: {best_score:.2f} | Tỷ lệ Chẵn/Lẻ: {sum(1 for x in best_pool if x%2==0)}C/{sum(1 for x in best_pool if x%2!=0)}L")
+    print(f"    • Entropy khoảng cách: {best_score:.3f} | Tỷ lệ Chẵn/Lẻ: {sum(1 for x in best_pool if x%2==0)}C/{sum(1 for x in best_pool if x%2!=0)}L")
     print(f"    • Số lặp kỳ trước: {sorted(list(prev_winning.intersection(set(best_pool))))}")
     print(f"    • Số dải cao (>=32): {[x for x in best_pool if x >= 32]} (Xuất hiện tự nhiên)")
     print(f"    • Nhịp vắng TB: {statistics.mean([current_skips.get(x, 6) for x in best_pool]):.1f} kỳ/số")
@@ -451,81 +300,74 @@ def generate_covering_wheel(v=10):
         r1 = evaluate_combination(list(t1), context=(latest_draw, current_skips))
         r2 = evaluate_combination(list(t2), context=(latest_draw, current_skips))
         
-        s1_skip = r1["skip_info"]["skip_sum"]
-        s2_skip = r2["skip_info"]["skip_sum"]
-        pen1 = 0 if (18 <= s1_skip <= 56) else -25
-        pen2 = 0 if (18 <= s2_skip <= 56) else -25
-        
-        total_sqs = r1["sqs"] + r2["sqs"] + pen1 + pen2
+        total_sqs = r1["sqs"] + r2["sqs"]
         if total_sqs > max_sqs:
             max_sqs = total_sqs
             best_pair = (t1, t2, r1, r2)
 
     t1, t2, r1, r2 = best_pair
-    sp1 = select_optimal_special_ball(t1, latest_draw)
-    sp2 = select_optimal_special_ball(t2, latest_draw, exclude_sp={sp1})
+    sp1 = select_optimal_special_ball()
+    sp2 = select_optimal_special_ball(exclude_sp={sp1})
     r1 = evaluate_combination(list(t1), sp1, context=(latest_draw, current_skips))
     r2 = evaluate_combination(list(t2), sp2, context=(latest_draw, current_skips))
 
     print("\n" + "=" * 72)
-    print(f"  DÀN 2 VÉ BAO TỐI ƯU C({v}, 5, 3, 5) - BẢO HIỂM 100% TRÚNG GIẢI 3")
+    print("  HAI VÉ RỜI TRÊN BỂ 10 SỐ — BAO PHỦ CÓ ĐIỀU KIỆN")
     print("=" * 72)
     print(f"🎫 VÉ SỐ 1: [ {' '.join(f'{x:02d}' for x in t1)} | ĐB: {sp1:02d} ]")
     print(f"   • SQS v2.0: {r1['sqs']:>5.1f}/100 ({r1['grade']})")
     print(f"   • Tổng số : {r1['sum']:>3} (Z={r1['z_sum']:>+.2f}) | {r1['odds']}L-{r1['evens']}C | Entropy: {r1['gap_entropy']:.2f}")
-    print(f"   • Nhịp Poisson: {r1['skip_info']['status']} | Lặp kỳ trước: {r1['markov_info']['repeats']} số")
+    print(f"   • Nhịp vắng: {r1['skip_info']['status']} | Lặp kỳ trước: {r1['markov_info']['repeats']} số")
 
     print(f"\n🎫 VÉ SỐ 2: [ {' '.join(f'{x:02d}' for x in t2)} | ĐB: {sp2:02d} ]")
     print(f"   • SQS v2.0: {r2['sqs']:>5.1f}/100 ({r2['grade']})")
     print(f"   • Tổng số : {r2['sum']:>3} (Z={r2['z_sum']:>+.2f}) | {r2['odds']}L-{r2['evens']}C | Entropy: {r2['gap_entropy']:.2f}")
-    print(f"   • Nhịp Poisson: {r2['skip_info']['status']} | Lặp kỳ trước: {r2['markov_info']['repeats']} số")
+    print(f"   • Nhịp vắng: {r2['skip_info']['status']} | Lặp kỳ trước: {r2['markov_info']['repeats']} số")
 
     print("-" * 72)
-    print(f"💡 ĐỊNH LÝ BẢO HIỂM TOÁN HỌC (Pigeonhole Theorem):")
-    print(f"   Bể số có 10 phần tử. Khi quay thưởng 5 số chính, luôn có ít nhất một vé")
-    print(f"   chứa từ 3 số trúng trở lên: Max(|Vé 1 ∩ Kết quả|, |Vé 2 ∩ Kết quả|) >= 3.")
-    print(f"   Chi phí chỉ 20.000đ thay vì 2.520.000đ (Tiết kiệm 99.2% vốn)!")
+    print(f"   Nếu cả 5 số kết quả thuộc bể 10 số, ít nhất một vé khớp >=3 số.")
+    print(f"   Xác suất >=3 số chính trên ít nhất một vé: 9002/324632 = 2.773%.")
+    print(f"   Không bảo đảm trúng giải; hai vé khác nhau có xác suất trúng đúng 5 số 2/324632.")
     print("=" * 72)
     return best_pool, [t1, t2]
 
+def suggest_balanced(count=5, samples=4000):
+    """Xếp hạng hình thái trong một mẫu ngẫu nhiên; không dự đoán kỳ quay."""
+    context = get_history_context()
+    candidates = {}
+    for _ in range(max(samples, count)):
+        combo = tuple(sorted(random.sample(range(1, 36), 5)))
+        if combo not in candidates:
+            candidates[combo] = evaluate_combination(combo, context=context)
+    ranked = sorted(candidates.values(), key=lambda result: result["sqs"], reverse=True)
+    return [evaluate_combination(result["combo"], random.randint(1, 12), context=context)
+            for result in ranked[:count]]
+
 def generate_candidates(count=5):
-    """Tự động tạo N bộ số chuẩn 5+1 đạt SQS v2.0 >= 80."""
-    print(f"[*] Đang tạo {count} bộ số hoàn chỉnh tối ưu SQS v2.0 (Unbiased):\n")
-    found = []
-    attempts = 0
-    spec_choices = [8, 6, 12, 7, 9, 3, 2, 10, 4, 5]
-    latest_draw, current_skips = get_history_context()
-    ctx = (latest_draw, current_skips)
-    
-    while len(found) < count and attempts < 40000:
-        attempts += 1
-        nums = sorted(random.sample(range(1, 36), 5))
-        available_specials = [s for s in spec_choices if s not in nums]
-        spec = random.choice(available_specials if available_specials else range(1, 13))
-        
-        res = evaluate_combination(nums, spec, context=ctx)
-        if res["sqs_v2"] >= 80.0 and res["gap_entropy"] >= 1.55:
-            found.append(res)
+    """Sinh các bộ số cân đối về hình thái, không thay đổi xác suất từng vé."""
+    print(f"[*] Đang tạo {count} bộ số có hình thái cân đối:\n")
+    found = suggest_balanced(count)
             
     for idx, r in enumerate(found, 1):
         s_str = ' '.join(f'{x:02d}' for x in r['combo'])
         sp = r['special_info']['special']
         m = r['markov_info']
         s = r['skip_info']
-        print(f"  Bộ {idx:02d}: [{s_str} | ĐB: {sp:02d}]  Tổng: {r['sum']:>3} | SQS v2: {r['sqs_v2']:>4.1f}/100 | Lặp: {m['repeats']} | Skip: {s['skip_sum']}")
+        print(f"  Bộ {idx:02d}: [{s_str} | ĐB: {sp:02d}]  Tổng: {r['sum']:>3} | Điểm cân đối: {r['sqs_v2']:>4.1f}/100 | Lặp: {m['repeats']} | Vắng: {s['skip_sum']}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Đánh giá bộ số Vietlott 5/35 Nâng Cao - SQS Engine v2.0 (Unbiased)")
+    parser = argparse.ArgumentParser(description="Đánh giá hình thái vé Vietlott 5/35 (không dự báo)")
     parser.add_argument("numbers", nargs="*", type=int, help="5 số chính, kèm số đặc biệt thứ 6 nếu có (ví dụ: 6 15 21 30 34 6)")
     parser.add_argument("-s", "--special", type=int, default=None, help="Số đặc biệt (1-12)")
-    parser.add_argument("--gen", type=int, default=0, help="Tự động tạo N bộ số chuẩn 5+1 tối ưu SQS v2.0")
-    parser.add_argument("--wheel", type=int, default=0, help="Tạo dàn bao tối ưu C(v, 5, 3, 5) kết hợp Phương án 3 và 4 (mặc định v=10)")
+    parser.add_argument("--gen", type=int, default=0, help="Sinh N bộ số cân đối hình thái")
+    parser.add_argument("--wheel", type=int, default=0, help="Chia bể 10 số thành hai vé")
     
     args = parser.parse_args()
     
     if args.wheel > 0 or "--wheel" in sys.argv:
-        v = args.wheel if args.wheel >= 10 else 10
-        generate_covering_wheel(v)
+        if args.wheel not in (0, 10):
+            parser.error("--wheel chỉ hỗ trợ bể 10 số cho hai vé 5 số")
+        generate_covering_wheel(10)
     elif args.gen > 0:
         generate_candidates(args.gen)
     elif len(args.numbers) == 6:

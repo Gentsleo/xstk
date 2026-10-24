@@ -1,6 +1,6 @@
-# 🎯 XSTK - Vietlott Lotto 5/35 Analysis & QR Tolerance Engine
+# 🎯 XSTK - Phân tích Vietlott Lotto 5/35
 
-Ứng dụng phân tích dữ liệu, chuẩn hóa xác suất thống kê và dự đoán bộ số cho **Vietlott Lotto 5/35** dựa trên **Mô hình Dung sai mã QR (Typical Set)** kết hợp **Khoảng cách Mahalanobis** và **Shannon Gap Entropy**.
+Ứng dụng xem lịch sử kỳ quay và gợi ý các bộ số cân đối về hình thức. Không dự đoán kết quả, không tăng xác suất trúng của từng bộ số.
 
 Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh My Pi (`math-mcp`, `mcp-mathematics`, `wolframalpha`).
 
@@ -11,14 +11,13 @@ Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh M
 1. **Giao diện đa nền tảng:**
    - **Desktop GUI (PyQt5):** Giao diện máy tính trực quan, chạy mượt mà trên Windows / WSL2 / Linux.
    - **Web App (GitHub Pages):** Ứng dụng web hiện đại (Single Page App với Tailwind CSS & Chart.js), có thể host trực tiếp trên GitHub Pages không cần server backend.
-2. **Cơ sở dữ liệu toàn diện:**
-   - Thu thập toàn bộ 954 kỳ quay lịch sử từ kỳ đầu tiên `#00001` đến nay.
+2. **Dữ liệu lịch sử:**
+   - Lưu các kỳ quay đã thu thập; cập nhật kỳ mới qua công cụ đồng bộ.
    - Định dạng lưu trữ: SQLite DB (`vietlott_535.db`), CSV, JSON.
-3. **Mô hình toán học đột phá (QR Error-Correction & Mahalanobis Engine):**
-   - Áp dụng ý tưởng mã QR dung sai lỗi $25\%$ (Level Q).
-   - Sử dụng ma trận hiệp phương sai thực nghiệm $\boldsymbol{\Sigma}^{-1}$ để khử triệt để hiện tượng đa cộng tuyến giữa Tổng điểm và Tài/Xỉu.
-   - Tính toán chính xác $p$-value theo phân phối Chi-Square $\chi^2(5)$.
-   - Đo lường độ phân tán không gian qua Shannon Gap Entropy.
+3. **Thống kê mô tả 5 số chính:**
+   - Khoảng cách Mahalanobis của tổng, số lẻ, số cao, độ rộng và cặp liền kề; tham chiếu chi-square chỉ là xấp xỉ mô tả.
+   - Shannon gap entropy đo độ rải đều, không đo cơ hội trúng.
+   - Số đặc biệt 1–12 được chọn đều, độc lập với 5 số chính.
 4. **Hệ thống tự động hóa:**
    - Tự động kiểm tra và cập nhật sau mỗi kỳ quay mới (Cron Job).
 
@@ -45,7 +44,7 @@ Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh M
 ./xstk.sh qr 06 15 21 30 34 06
 ```
 
-### 4. Tự động gợi ý N bộ số chuẩn xác suất (SQS ≥ 80/100)
+### 4. Gợi ý N bộ số cân đối về hình thức (không dự báo)
 ```bash
 ./xstk.sh qr --gen 5
 ```
@@ -61,44 +60,40 @@ Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh M
 
 ---
 
-## 📐 Mô Hình Toán Học Cốt Lõi: Lý Thuyết Dung Sai Mã QR (QR Tolerance Engine)
+## 📐 Thống kê mô tả và xác suất trúng
 
-Mô hình lấy cảm hứng từ nguyên lý **Mã Sửa Sai (Error-Correcting Code - Reed-Solomon Level Q)** trong công nghệ mã QR:
-> **"Một mã QR bị mất hoặc nhòe 20% – 25% diện tích vẫn có thể quét thành công nhờ các Điểm Neo Bất Biến (Finder Patterns) và Vạch Nhịp Đồng Bộ (Timing Patterns)."**
+Mỗi kỳ quay độc lập với lịch sử. Với giả thiết quay đều, mọi bộ 5 số chính cụ thể
+có xác suất trúng đủ 5 số chính bằng nhau: $1/\binom{35}{5}=1/324632$ mỗi kỳ.
+Số đặc biệt lấy độc lập và đều từ 1 đến 12; trùng một số chính không phải
+lý do để loại bỏ hay ưu tiên vé. Tần suất quá khứ không cho biết kết quả kỳ tới.
 
-Áp dụng vào Xác suất Thống kê Vietlott Lotto 5/35:
-* Không gian tổ hợp có tới $C_{35}^5 = 324,632$ bộ số. Thay vì cố gắng dự đoán chính xác tuyệt đối từng quả bóng vi mô (điều bất khả thi do tính ngẫu nhiên), mô hình đi tìm **Vùng Dung Sai Điển Hình (Typical Set)** nơi mà **$75\% - 80\%$ các kỳ quay thực tế trong lịch sử bắt buộc phải hội tụ về**.
-* Bất kỳ bộ số nào nằm ngoài vùng dung sai này đều bị coi là **"nhiễu rác làm hỏng mã QR"** (như bộ số toàn chẵn, toàn lẻ, hoặc dồn cục `16-17-18-19-20`) và bị loại bỏ.
+### SQS: điểm mô tả, không phải xác suất
 
-### 1. Bảng đối chiếu triết lý: Mã QR ↔ Xác Suất Vietlott
+SQS (0–100) chỉ đánh giá tính cân đối hình thức của **5 số chính**. Vector
+đặc trưng $\mathbf{x}=[\text{Sum},\text{Odds},\text{Highs},\text{Span},\text{Consecs}]^T$
+và khoảng cách Mahalanobis
+$D_M^2=(\mathbf{x}-\boldsymbol{\mu})^T\boldsymbol{\Sigma}^{-1}
+(\mathbf{x}-\boldsymbol{\mu})$ giúp mô tả độ lệch của các đặc trưng có tương quan.
+Giá trị $1-F_{\chi^2_5}(D_M^2)$ chỉ là **tham chiếu chi-square xấp xỉ**:
+các đặc trưng rời rạc không bảo đảm $D_M^2$ phân phối chính xác theo $\chi^2_5$.
+Đây không phải xác suất một bộ số được quay ra, cũng không phải lợi thế của SQS cao.
 
-| Thành phần Mã QR | Vai trò trong Mã QR | Tương ứng trong Mô hình XSTK 5/35 | Công thức Toán học áp dụng |
-|---|---|---|---|
-| **Dung sai lỗi 20–25% (Level Q)** | Cho phép mất 20–25% diện tích mà camera vẫn quét được dữ liệu gốc | Vùng bao phủ $75–80\%$ các kỳ quay thực tế, lọc bỏ $70\%$ các bộ số rác | **Phân phối Chi-Square $\chi^2(5)$** với ngưỡng $p \ge 0.20$ ($D_M^2 \le 7.09$) |
-| **3 Ô vuông góc (Finder Patterns)** | Điểm neo định vị toạ độ, giúp máy quét nhận diện góc quay | Điểm cân bằng vĩ mô bất biến: Trọng tâm Tổng điểm, Tỷ lệ Chẵn/Lẻ, Tài/Xỉu | Vector kỳ vọng $\boldsymbol{\mu} = [91.1, 2.57, 2.62, 23.85, 0.58]^T$ |
-| **Ma trận khử nhiễu (Reed-Solomon)** | Bóc tách nhiễu đa chiều trên trường Galois $GF(2^8)$, không phạt trùng lặp | Khử triệt để hiện tượng đa cộng tuyến giữa Tổng và Số Lớn ($\rho = +0.876$) | **Khoảng cách Mahalanobis** $D_M^2 = (\mathbf{x} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu})$ |
-| **Vạch nhịp đồng bộ (Timing Patterns)** | Các dải xen kẽ đen/trắng giúp chống hiện tượng pixel vón thành cục | Đảm bảo 5 quả bóng không bị dồn cục, rải đều hài hòa trên dải $[1, 35]$ | **Shannon Gap Entropy** $H(\text{Gaps}) = -\sum p_i \ln p_i$ |
-| **Dữ liệu Payload cốt lõi** | Thông điệp nguyên bản được khôi phục trọn vẹn | Bộ số hoàn chỉnh $5$ số chính $+ 1$ số đặc biệt đạt điểm SQS cao | **Chỉ số SQS (Thang điểm 100)** |
+Độ rải đều có thể mô tả bằng entropy của sáu khoảng trống dương
+$g=(n_1,n_2-n_1,\ldots,n_5-n_4,36-n_5)$, với $n_1<\cdots<n_5$:
+$$\sum_{i=1}^{6}g_i=36,\qquad \overline g=6,\qquad
+H(g)=-\sum_{i=1}^{6}\frac{g_i}{36}\ln\frac{g_i}{36}.$$
+Chọn vé cân đối chỉ phục vụ sở thích trình bày; bộ số dồn cụm cũng có
+xác suất trúng đúng 5 số chính bằng một bộ số rải đều.
 
----
+### Hai vé có 5 số chính không giao nhau
 
-### 2. Các Công thức Toán học Chi tiết
+Nếu **cả 5 số trúng chính** đều nằm trong hợp 10 số chính của hai vé
+không giao nhau, nguyên lý chuồng bồ câu bảo đảm ít nhất một vé khớp
+từ 3 số chính trở lên. Đây là **bảo đảm có điều kiện**, không phải bảo đảm
+trúng trong một kỳ quay bất kỳ. Với hai vé cố định như vậy, xác suất
+**vô điều kiện** ít nhất một vé khớp từ 3 số chính trở lên là
+$9002/\binom{35}{5}=9002/324632$ (chỉ xét 5 số chính).
 
-#### A. Khoảng cách Mahalanobis Khử Tương Quan Chéo ($D_M^2$)
-$$D_M^2(\mathbf{x}) = (\mathbf{x} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu})$$
-Với $\mathbf{x} = [\text{Sum}, \text{Odds}, \text{Highs}, \text{Span}, \text{Consecs}]^T$. Biến ngẫu nhiên $D_M^2$ tuân theo phân phối Chi-Square với $k=5$ bậc tự do:
-$$p = 1 - F_{\chi^2_5}(D_M^2)$$
-
-#### B. Shannon Gap Entropy ($H_{\text{Gaps}}$ - Đo độ rải đều)
-$$H(\text{Gaps}) = -\sum_{i=1}^6 p_i \ln p_i \quad \left(p_i = \frac{g_i}{36}\right)$$
-Đo lường độ rải đều của 5 số trên trục số $[1, 35]$. Ngưỡng tối ưu: $H \ge 1.60$ (cực đại lý thuyết $\ln(6) \approx 1.79$).
-
-#### C. Thang Điểm Chất Lượng Chuẩn Hóa (SQS 0 - 100)
-$$\text{SQS} = \text{Score}_{\text{main}} \times 0.85 + \text{Score}_{\text{special}} \times 0.15$$
-* $\text{SQS} \ge 75/100$: **XUẤT SẮC** (Top 25% tâm phân phối đối xứng hoàn hảo).
-* $40 \le \text{SQS} < 75$: **ĐẠT CHUẨN** (Vùng dung sai 80% QR Code).
-* $10 \le \text{SQS} < 40$: **DUNG SAI BIÊN** (Lệch nhẹ).
-* $\text{SQS} < 10$: **CẢNH BÁO** (Dị tật, dồn cụm, lệch chẵn/lẻ $p < 0.05$).
 ---
 
 ## 🌐 Triển Khai Lên GitHub & GitHub Pages
