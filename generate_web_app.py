@@ -147,11 +147,11 @@ html_content = f"""<!DOCTYPE html>
             <div class="space-y-3">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">📱 Tùy Chọn 2: Nhập Nhanh Kỳ Vừa Quay Trên ĐT</h4>
                 <p class="text-xs text-gray-400">
-                    Khi vừa xem tivi / có tin nhắn kết quả, bạn có thể điền ngay vào đây (Lưu trực tiếp vào bộ nhớ điện thoại):
+                    Điền hoặc dán kết quả vừa quay (Lưu trực tiếp vào bộ nhớ điện thoại):
                 </p>
                 <div class="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                        <label class="text-gray-400 block mb-1">Mã kỳ (vd: 00955):</label>
+                        <label class="text-gray-400 block mb-1">Mã kỳ (vd: 00966):</label>
                         <input id="inputNewCode" type="text" class="w-full p-2 bg-brand-dark border border-brand-border rounded-lg text-gray-200 font-bold text-center">
                     </div>
                     <div>
@@ -161,17 +161,24 @@ html_content = f"""<!DOCTYPE html>
                 </div>
 
                 <div>
-                    <label class="text-gray-400 block mb-1 text-xs">5 số chính + 1 số ĐB:</label>
+                    <label class="text-gray-400 block mb-1 text-xs">Dán nhanh cả chuỗi (vd: 01 05 10 12 14 | 03):</label>
+                    <input id="inputQuickPaste" type="text" placeholder="Dán chuỗi số kết quả vào đây..." oninput="handleQuickPaste(this.value)" class="w-full p-2 bg-brand-dark border border-brand-border rounded-lg text-gray-200 text-xs">
+                </div>
+
+                <div>
+                    <label class="text-gray-400 block mb-1 text-xs">Hoặc gõ từng ô (5 số chính + 1 số ĐB):</label>
                     <div class="flex items-center gap-1.5 justify-between">
-                        <input id="inN1" type="number" min="1" max="35" placeholder="01" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
-                        <input id="inN2" type="number" min="1" max="35" placeholder="02" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
-                        <input id="inN3" type="number" min="1" max="35" placeholder="03" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
-                        <input id="inN4" type="number" min="1" max="35" placeholder="04" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
-                        <input id="inN5" type="number" min="1" max="35" placeholder="05" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN1" type="number" inputmode="numeric" min="1" max="35" placeholder="01" oninput="handleBallInput(this, 'inN2')" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN2" type="number" inputmode="numeric" min="1" max="35" placeholder="02" oninput="handleBallInput(this, 'inN3')" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN3" type="number" inputmode="numeric" min="1" max="35" placeholder="03" oninput="handleBallInput(this, 'inN4')" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN4" type="number" inputmode="numeric" min="1" max="35" placeholder="04" oninput="handleBallInput(this, 'inN5')" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                        <input id="inN5" type="number" inputmode="numeric" min="1" max="35" placeholder="05" oninput="handleBallInput(this, 'inNS')" class="w-10 h-10 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
                         <span class="text-brand-accent font-bold">|</span>
-                        <input id="inNS" type="number" min="1" max="12" placeholder="ĐB" class="w-11 h-10 text-center font-bold bg-brand-dark border-2 border-brand-accent text-brand-accent rounded-lg text-sm">
+                        <input id="inNS" type="number" inputmode="numeric" min="1" max="12" placeholder="ĐB" class="w-11 h-10 text-center font-bold bg-brand-dark border-2 border-brand-accent text-brand-accent rounded-lg text-sm">
                     </div>
                 </div>
+
+                <div id="modalNotice" class="text-xs font-semibold text-center hidden p-2 rounded-lg"></div>
 
                 <button onclick="saveManualDraw()" class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold rounded-xl text-xs md:text-sm transition flex items-center justify-center gap-2 shadow-lg">
                     💾 Lưu Kỳ Này Vào Điện Thoại
@@ -727,12 +734,53 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('updateModal').classList.add('hidden');
         }}
 
+        function showModalNotice(msg, isError=false) {{
+            const el = document.getElementById('modalNotice');
+            if (!el) return;
+            el.innerText = msg;
+            el.className = isError 
+                ? 'text-xs font-semibold text-center p-2 rounded-lg bg-red-950/80 border border-red-500 text-red-200'
+                : 'text-xs font-semibold text-center p-2 rounded-lg bg-green-950/80 border border-green-500 text-green-200';
+            el.classList.remove('hidden');
+        }}
+
+        function handleBallInput(el, nextId) {{
+            if (el.value.length >= 2 && nextId) {{
+                const next = document.getElementById(nextId);
+                if (next) next.focus();
+            }}
+        }}
+
+        function handleQuickPaste(raw) {{
+            if (!raw) return;
+            const nums = raw.match(/\\d+/g);
+            if (!nums || nums.length < 5) return;
+            const ints = nums.map(n => parseInt(n, 10));
+            if (ints.length >= 6) {{
+                document.getElementById('inN1').value = ints[0];
+                document.getElementById('inN2').value = ints[1];
+                document.getElementById('inN3').value = ints[2];
+                document.getElementById('inN4').value = ints[3];
+                document.getElementById('inN5').value = ints[4];
+                document.getElementById('inNS').value = ints[5];
+                showModalNotice(`Đã nhận diện: ${{ints.slice(0,5).map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB ${{String(ints[5]).padStart(2,'0')}}`);
+            }} else if (ints.length === 5) {{
+                document.getElementById('inN1').value = ints[0];
+                document.getElementById('inN2').value = ints[1];
+                document.getElementById('inN3').value = ints[2];
+                document.getElementById('inN4').value = ints[3];
+                document.getElementById('inN5').value = ints[4];
+                showModalNotice(`Đã nhận 5 số chính: ${{ints.map(x=>String(x).padStart(2,'0')).join(' ')}}. Vui lòng điền số ĐB.`);
+            }}
+        }}
+
         async function syncFromCloud() {{
             const btn = document.getElementById('btnSyncCloud');
             const spinner = document.getElementById('syncSpinner');
             btn.disabled = true;
             spinner.classList.remove('hidden');
             showToast("Đang kết nối kho GitHub tải kỳ quay mới...");
+            showModalNotice("Đang kiểm tra dữ liệu từ đám mây GitHub...");
 
             try {{
                 const url = "https://raw.githubusercontent.com/Gentsleo/xstk/main/vietlott_535.json?t=" + Date.now();
@@ -744,19 +792,32 @@ html_content = f"""<!DOCTYPE html>
                     const curMax = DRAWS_DATA.length > 0 ? DRAWS_DATA[0].draw_id : 0;
                     const newOnes = cloudDraws.filter(d => d.draw_id > curMax);
                     if (newOnes.length > 0) {{
-                        newOnes.forEach(d => LOCAL_DRAWS.push(d));
-                        localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
+                        newOnes.forEach(d => {{
+                            LOCAL_DRAWS = LOCAL_DRAWS.filter(ld => ld.draw_code !== d.draw_code);
+                            LOCAL_DRAWS.push(d);
+                        }});
+                        try {{
+                            localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
+                        }} catch(e) {{
+                            console.warn("localStorage quota/private warning:", e);
+                        }}
                         updateAppViews();
-                        showToast(`🎉 Đã tải thành công ${{newOnes.length}} kỳ quay mới từ đám mây!`);
+                        showToast(`🎉 Đã tải thành công ${{newOnes.length}} kỳ mới từ đám mây (đến kỳ #${{cloudDraws[cloudDraws.length-1].draw_code}})!`);
+                        closeUpdateModal();
                     }} else {{
-                        showToast(`Dữ liệu đã đồng bộ mới nhất (Kỳ #${{cloudDraws[cloudDraws.length-1].draw_code}}).`);
+                        const latestCloud = cloudDraws[cloudDraws.length-1].draw_code;
+                        const msg = `Máy của bạn đã ở kỳ #${{DRAWS_DATA[0].draw_code}}, đám mây cũng là kỳ #${{latestCloud}}. Không có kỳ mới hơn.`;
+                        showToast(msg);
+                        showModalNotice(msg);
                     }}
-                    closeUpdateModal();
                 }} else {{
                     showToast("Dữ liệu từ đám mây không hợp lệ.", true);
+                    showModalNotice("Dữ liệu từ đám mây không hợp lệ.", true);
                 }}
             }} catch(err) {{
-                showToast("Lỗi đồng bộ đám mây: " + err.message + ". Vui lòng thử lại sau.", true);
+                const errMsg = "Lỗi đồng bộ đám mây: " + err.message;
+                showToast(errMsg, true);
+                showModalNotice(errMsg, true);
             }} finally {{
                 btn.disabled = false;
                 spinner.classList.add('hidden');
@@ -766,26 +827,32 @@ html_content = f"""<!DOCTYPE html>
         function saveManualDraw() {{
             const code = document.getElementById('inputNewCode').value.trim();
             const date = document.getElementById('inputNewDate').value.trim();
-            const n1 = parseInt(document.getElementById('inN1').value);
-            const n2 = parseInt(document.getElementById('inN2').value);
-            const n3 = parseInt(document.getElementById('inN3').value);
-            const n4 = parseInt(document.getElementById('inN4').value);
-            const n5 = parseInt(document.getElementById('inN5').value);
-            const nS = parseInt(document.getElementById('inNS').value);
+            const n1 = parseInt(document.getElementById('inN1').value, 10);
+            const n2 = parseInt(document.getElementById('inN2').value, 10);
+            const n3 = parseInt(document.getElementById('inN3').value, 10);
+            const n4 = parseInt(document.getElementById('inN4').value, 10);
+            const n5 = parseInt(document.getElementById('inN5').value, 10);
+            const nS = parseInt(document.getElementById('inNS').value, 10);
 
             const nums = [n1, n2, n3, n4, n5];
             for (let x of nums) {{
                 if (isNaN(x) || x < 1 || x > 35) {{
-                    showToast("5 số chính phải từ 01 đến 35!", true);
+                    const msg = "5 số chính phải từ 01 đến 35!";
+                    showToast(msg, true);
+                    showModalNotice(msg, true);
                     return;
                 }}
             }}
             if (new Set(nums).size !== 5) {{
-                showToast("5 số chính không được trùng nhau!", true);
+                const msg = "5 số chính không được trùng nhau!";
+                showToast(msg, true);
+                showModalNotice(msg, true);
                 return;
             }}
             if (isNaN(nS) || nS < 1 || nS > 12) {{
-                showToast("Số đặc biệt phải từ 01 đến 12!", true);
+                const msg = "Số đặc biệt phải từ 01 đến 12!";
+                showToast(msg, true);
+                showModalNotice(msg, true);
                 return;
             }}
 
@@ -793,7 +860,7 @@ html_content = f"""<!DOCTYPE html>
             const numStr = sortedNums.map(x => String(x).padStart(2,'0')).join(' ') + ' | ' + String(nS).padStart(2,'0');
 
             const newDraw = {{
-                draw_id: parseInt(code) || (DRAWS_DATA.length + 1),
+                draw_id: parseInt(code, 10) || (DRAWS_DATA.length + 1),
                 draw_code: code || String(DRAWS_DATA.length + 1).padStart(5, '0'),
                 date: date || "Hôm nay",
                 num1: sortedNums[0],
@@ -805,8 +872,13 @@ html_content = f"""<!DOCTYPE html>
                 numbers_str: numStr
             }};
 
+            LOCAL_DRAWS = LOCAL_DRAWS.filter(d => d.draw_code !== newDraw.draw_code);
             LOCAL_DRAWS.push(newDraw);
-            localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
+            try {{
+                localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
+            }} catch(e) {{
+                console.warn("localStorage quota/private warning:", e);
+            }}
             updateAppViews();
             showToast(`[✓] Đã lưu kỳ #${{newDraw.draw_code}} vào điện thoại thành công!`);
             closeUpdateModal();

@@ -11578,5 +11578,17 @@
     "num5": 27,
     "special": 8,
     "numbers_str": "02 07 12 22 27 | 08"
+  },
+  {
+    "draw_id": 966,
+    "draw_code": "00966",
+    "date": "24/10/2026",
+    "num1": 1,
+    "num2": 5,
+    "num3": 10,
+    "num4": 12,
+    "num5": 14,
+    "special": 3,
+    "numbers_str": "01 05 10 12 14 | 03"
   }
 ]

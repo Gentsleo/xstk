@@ -206,6 +206,12 @@ def update_once():
     
     # Refresh charts & standardized data
     update_charts_and_stats()
+    
+    # Refresh static web app files (index.html & docs/index.html)
+    gen_script = os.path.join(BASE_DIR, "generate_web_app.py")
+    if os.path.exists(gen_script):
+        subprocess.run([sys.executable, gen_script], cwd=BASE_DIR, capture_output=True)
+        log("[✓] Đã tạo lại index.html và docs/index.html cho Web App!")
     return True
 
 def watch_loop(interval_sec):
