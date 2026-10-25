@@ -133,9 +133,12 @@ html_content = f"""<!DOCTYPE html>
                         <span id="syncSpinner" class="hidden">⏳</span> 🔄 Đồng Bộ Từ Đám Mây
                     </button>
                     <a href="https://github.com/Gentsleo/xstk/actions/workflows/auto-update.yml" target="_blank" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 border border-brand-border">
-                        ⚡ Ép Cào Ngay
+                        ⚡ Ép Cào Ngay (GitHub)
                     </a>
                 </div>
+                <p class="text-[10px] text-gray-500 italic">
+                    * Máy chủ tự động cào và đẩy dữ liệu sau mỗi kỳ quay. Nút 'Đồng Bộ Từ Đám Mây' sẽ tải kỳ mới về máy bạn.
+                </p>
             </div>
 
             <div class="relative flex py-1 items-center">

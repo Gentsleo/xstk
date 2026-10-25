@@ -212,6 +212,23 @@ def update_once():
     if os.path.exists(gen_script):
         subprocess.run([sys.executable, gen_script], cwd=BASE_DIR, capture_output=True)
         log("[✓] Đã tạo lại index.html và docs/index.html cho Web App!")
+
+    # Auto git commit and push if in git repo
+    try:
+        git_dir = os.path.join(BASE_DIR, ".git")
+        if os.path.exists(git_dir):
+            subprocess.run(["git", "add", "-A"], cwd=BASE_DIR, capture_output=True)
+            msg = f"chore(auto-update): cập nhật kỳ #{new_max:05d} ({total_cnt} kỳ)"
+            c_res = subprocess.run(["git", "commit", "-m", msg], cwd=BASE_DIR, capture_output=True, text=True)
+            if c_res.returncode == 0:
+                p_res = subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, capture_output=True, text=True)
+                if p_res.returncode == 0:
+                    log(f"[✓] Đã tự động đẩy kỳ #{new_max:05d} lên GitHub thành công!")
+                else:
+                    log(f"[!] Push GitHub không thành công: {p_res.stderr.strip()[:100]}")
+    except Exception as ge:
+        log(f"[!] Lỗi khi commit/push git: {ge}")
+
     return True
 
 def watch_loop(interval_sec):
