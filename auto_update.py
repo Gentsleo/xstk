@@ -184,8 +184,8 @@ def update_once():
     if not new_draws:
         log(f"[-] Dữ liệu đã là mới nhất (Kỳ #{local_max:05d}). Không có kỳ mới.")
         conn.close()
+        publish_data_updates()
         return False
-
     log(f"[+] Phát hiện {len(new_draws)} kỳ quay mới trên Vietlott!")
     sorted_new = sorted(new_draws, key=lambda x: x["draw_id"])
     for d in sorted_new:
@@ -213,23 +213,49 @@ def update_once():
         subprocess.run([sys.executable, gen_script], cwd=BASE_DIR, capture_output=True)
         log("[✓] Đã tạo lại index.html và docs/index.html cho Web App!")
 
-    # Auto git commit and push if in git repo
-    try:
-        git_dir = os.path.join(BASE_DIR, ".git")
-        if os.path.exists(git_dir):
-            subprocess.run(["git", "add", "-A"], cwd=BASE_DIR, capture_output=True)
-            msg = f"chore(auto-update): cập nhật kỳ #{new_max:05d} ({total_cnt} kỳ)"
-            c_res = subprocess.run(["git", "commit", "-m", msg], cwd=BASE_DIR, capture_output=True, text=True)
-            if c_res.returncode == 0:
-                p_res = subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, capture_output=True, text=True)
-                if p_res.returncode == 0:
-                    log(f"[✓] Đã tự động đẩy kỳ #{new_max:05d} lên GitHub thành công!")
-                else:
-                    log(f"[!] Push GitHub không thành công: {p_res.stderr.strip()[:100]}")
-    except Exception as ge:
-        log(f"[!] Lỗi khi commit/push git: {ge}")
-
+    # Publish updates to GitHub Pages
+    publish_data_updates(f"chore(auto-update): cập nhật kỳ #{new_max:05d} ({total_cnt} kỳ)")
     return True
+
+DATA_TARGET_FILES = [
+    "vietlott_535.db",
+    "vietlott_535.json",
+    "vietlott_535.csv",
+    "vietlott_535_frequency_stats.csv",
+    "vietlott_535_standardized.csv",
+    "charts/01_frequency_distribution.png",
+    "charts/02_zscore_standardized_balls.png",
+    "charts/03_sum_histogram.png",
+    "charts/04_special_numbers.png",
+    "index.html",
+    "docs/index.html"
+]
+
+def publish_data_updates(commit_msg=None):
+    """Chỉ commit và push các file dữ liệu được chỉ định; thử lại nếu lần push trước bị hoãn."""
+    git_dir = os.path.join(BASE_DIR, ".git")
+    if not os.path.exists(git_dir):
+        return
+
+    try:
+        existing = [f for f in DATA_TARGET_FILES if os.path.exists(os.path.join(BASE_DIR, f))]
+        if existing:
+            subprocess.run(["git", "add", "--"] + existing, cwd=BASE_DIR, capture_output=True)
+
+        diff_res = subprocess.run(["git", "diff", "--staged", "--name-only"], cwd=BASE_DIR, capture_output=True, text=True)
+        if diff_res.stdout.strip():
+            msg = commit_msg or "chore(auto-update): cập nhật dữ liệu kỳ quay mới"
+            subprocess.run(["git", "commit", "-m", msg], cwd=BASE_DIR, capture_output=True, text=True)
+
+        status_res = subprocess.run(["git", "status", "-sb"], cwd=BASE_DIR, capture_output=True, text=True)
+        if "ahead" in status_res.stdout:
+            p_res = subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, capture_output=True, text=True)
+            if p_res.returncode == 0:
+                log("[✓] Đã đẩy các bản cập nhật dữ liệu lên GitHub thành công!")
+            else:
+                log(f"[!] Push GitHub không thành công: {p_res.stderr.strip()[:100]}")
+    except Exception as ge:
+        log(f"[!] Lỗi khi xuất bản lên git: {ge}")
 
 def watch_loop(interval_sec):
     log(f"[*] Bắt đầu chế độ theo dõi tự động (Watch mode). Chu kỳ kiểm tra: {interval_sec} giây ({interval_sec/60:.1f} phút)...")
