@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi" class="dark">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -786,14 +787,22 @@
                             LOCAL_DRAWS = LOCAL_DRAWS.filter(ld => ld.draw_code !== d.draw_code);
                             LOCAL_DRAWS.push(d);
                         });
+                        let syncStorageOk = true;
                         try {
                             localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
                         } catch(e) {
+                            syncStorageOk = false;
                             console.warn("localStorage quota/private warning:", e);
                         }
                         updateAppViews();
-                        showToast(`🎉 Đã tải thành công ${newOnes.length} kỳ mới từ đám mây (đến kỳ #${cloudDraws[cloudDraws.length-1].draw_code})!`);
-                        closeUpdateModal();
+                        if (syncStorageOk) {
+                            showToast(`🎉 Đã tải thành công ${newOnes.length} kỳ mới từ đám mây (đến kỳ #${cloudDraws[cloudDraws.length-1].draw_code})!`);
+                            closeUpdateModal();
+                        } else {
+                            const warnMsg = `⚠️ Đã tải ${newOnes.length} kỳ mới cho phiên này, nhưng bộ nhớ điện thoại đang chặn lưu lâu dài (chế độ ẩn danh). Dữ liệu sẽ mất khi đóng tab!`;
+                            showToast(warnMsg, true);
+                            showModalNotice(warnMsg, true);
+                        }
                     } else {
                         const latestCloud = cloudDraws[cloudDraws.length-1].draw_code;
                         const msg = `Máy của bạn đã ở kỳ #${DRAWS_DATA[0].draw_code}, đám mây cũng là kỳ #${latestCloud}. Không có kỳ mới hơn.`;
@@ -864,16 +873,23 @@
 
             LOCAL_DRAWS = LOCAL_DRAWS.filter(d => d.draw_code !== newDraw.draw_code);
             LOCAL_DRAWS.push(newDraw);
+            let storageOk = true;
             try {
                 localStorage.setItem('vietlott_535_custom_draws', JSON.stringify(LOCAL_DRAWS));
             } catch(e) {
+                storageOk = false;
                 console.warn("localStorage quota/private warning:", e);
             }
             updateAppViews();
-            showToast(`[✓] Đã lưu kỳ #${newDraw.draw_code} vào điện thoại thành công!`);
-            closeUpdateModal();
+            if (storageOk) {
+                showToast(`[✓] Đã lưu kỳ #${newDraw.draw_code} vào điện thoại thành công!`);
+                closeUpdateModal();
+            } else {
+                const warnMsg = `⚠️ Đã nhận kỳ #${newDraw.draw_code} cho phiên này, nhưng bộ nhớ điện thoại (chế độ ẩn danh) đang chặn lưu lâu dài. Sẽ mất khi tải lại trang!`;
+                showToast(warnMsg, true);
+                showModalNotice(warnMsg, true);
+            }
         }
-
         function resetLocalStorageDraws() {
             if (confirm("Bạn có chắc muốn xóa các kỳ tự nhập/lưu tạm trên máy này?")) {
                 LOCAL_DRAWS = [];
