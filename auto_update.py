@@ -232,7 +232,7 @@ DATA_TARGET_FILES = [
 ]
 
 def publish_data_updates(commit_msg=None):
-    """Chỉ commit và push các file dữ liệu được chỉ định; thử lại nếu lần push trước bị hoãn."""
+    """Chỉ commit và push các file dữ liệu được chỉ định; cô lập hoàn toàn các file đang stage của người dùng."""
     git_dir = os.path.join(BASE_DIR, ".git")
     if not os.path.exists(git_dir):
         return
@@ -242,11 +242,17 @@ def publish_data_updates(commit_msg=None):
         if existing:
             subprocess.run(["git", "add", "--"] + existing, cwd=BASE_DIR, capture_output=True)
 
-        diff_res = subprocess.run(["git", "diff", "--staged", "--name-only"], cwd=BASE_DIR, capture_output=True, text=True)
-        if diff_res.stdout.strip():
-            msg = commit_msg or "chore(auto-update): cập nhật dữ liệu kỳ quay mới"
-            subprocess.run(["git", "commit", "-m", msg], cwd=BASE_DIR, capture_output=True, text=True)
+        # Chỉ commit những file thuộc DATA_TARGET_FILES có thay đổi staged
+        staged_targets = subprocess.run(
+            ["git", "diff", "--staged", "--name-only", "--"] + existing,
+            cwd=BASE_DIR, capture_output=True, text=True
+        ).stdout.splitlines()
 
+        if staged_targets:
+            msg = commit_msg or "chore(auto-update): cập nhật dữ liệu kỳ quay mới"
+            subprocess.run(["git", "commit", "-m", msg, "--"] + staged_targets, cwd=BASE_DIR, capture_output=True, text=True)
+
+        # Kiểm tra và đẩy commit tồn đọng lên GitHub
         status_res = subprocess.run(["git", "status", "-sb"], cwd=BASE_DIR, capture_output=True, text=True)
         if "ahead" in status_res.stdout:
             p_res = subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, capture_output=True, text=True)
