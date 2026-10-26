@@ -11602,5 +11602,41 @@
     "num5": 30,
     "special": 10,
     "numbers_str": "01 04 14 20 30 | 10"
+  },
+  {
+    "draw_id": 968,
+    "draw_code": "00968",
+    "date": "25/10/2026",
+    "num1": 2,
+    "num2": 4,
+    "num3": 13,
+    "num4": 22,
+    "num5": 26,
+    "special": 9,
+    "numbers_str": "02 04 13 22 26 | 09"
+  },
+  {
+    "draw_id": 969,
+    "draw_code": "00969",
+    "date": "26/10/2026",
+    "num1": 12,
+    "num2": 13,
+    "num3": 20,
+    "num4": 22,
+    "num5": 32,
+    "special": 4,
+    "numbers_str": "12 13 20 22 32 | 04"
+  },
+  {
+    "draw_id": 970,
+    "draw_code": "00970",
+    "date": "26/10/2026",
+    "num1": 3,
+    "num2": 9,
+    "num3": 16,
+    "num4": 26,
+    "num5": 29,
+    "special": 9,
+    "numbers_str": "03 09 16 26 29 | 09"
   }
 ]
