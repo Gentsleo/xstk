@@ -33,11 +33,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install beautifulsoup4
 
+      - name: Test and Debug Vietlott Connection
+        run: |
+          echo "### 🌐 Kiểm tra kết nối từ GitHub Runner tới Vietlott" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          curl -sI -m 10 "https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/winning-number-535" | head -n 15 >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          python3 -c "
+          import urllib.request
+          try:
+              req = urllib.request.Request('https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/winning-number-535', headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+              r = urllib.request.urlopen(req, timeout=10)
+              html = r.read().decode('utf-8')
+              print('Status:', r.status, 'HTML len:', len(html), 'ServerSideDrawResult found:', 'ServerSideDrawResult' in html)
+          except Exception as e:
+              print('ERROR connecting to Vietlott:', type(e).__name__, str(e))
+          " >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          
+          # Ghi vào file log để kiểm tra qua git
+          cat $GITHUB_STEP_SUMMARY > ci_debug.log
+
       - name: Run Auto Update
         run: |
           python auto_update.py
           python generate_web_app.py
-
+          if [ -f auto_update.log ]; then
+            echo "### 📋 auto_update.log" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 20 auto_update.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
       - name: Commit and push if new draws found
         run: |
           git config user.name "github-actions[bot]"
