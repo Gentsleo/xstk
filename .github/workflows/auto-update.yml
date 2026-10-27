@@ -36,33 +36,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install beautifulsoup4
 
-      - name: Test and Debug Vietlott Connection
-        run: |
-          echo "### 🌐 Kiểm tra kết nối từ GitHub Runner" > docs/ci_debug.txt
-          echo '```' >> docs/ci_debug.txt
-          for url in \
-            "https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/winning-number-535" \
-            "https://xskt.com.vn/ket-qua-xo-so-dien-toan/vietlott-lotto-535" \
-            "https://www.minhngoc.net.vn/ket-qua-xo-so/dien-toan-vietlott.html" \
-            "https://xoso.com.vn/vietlott.html"
-          do
-            code=$(curl -sI -m 5 -o /dev/null -w "%{http_code}" "$url" || echo "FAIL")
-            echo "$code: $url" >> docs/ci_debug.txt
-          done
-          echo '```' >> docs/ci_debug.txt
-          cat docs/ci_debug.txt >> $GITHUB_STEP_SUMMARY
-
       - name: Run Auto Update
         run: |
           python auto_update.py
           python generate_web_app.py
-          if [ -f auto_update.log ]; then
-            echo "### 📋 auto_update.log" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 20 auto_update.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -n 20 auto_update.log >> docs/ci_debug.txt
-          fi
       - name: Commit and push if new draws found
         run: |
           git config user.name "github-actions[bot]"

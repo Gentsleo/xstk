@@ -154,8 +154,12 @@ def update_once():
     except Exception as e:
         log(f"[!] Không thể kết nối với Vietlott: {e}")
         conn.close()
+        if os.getenv("GITHUB_ACTIONS") == "true":
+            raise RuntimeError(
+                f"Cloudflare WAF chặn IP GitHub Actions Runner ({e}). "
+                f"Máy chủ Vietlott yêu cầu IP dân cư / ISP tại Việt Nam."
+            )
         return False
-        
     arr_numbers = [[""] * 35 for _ in range(5)]
     new_draws = []
     page = 0

@@ -124,20 +124,17 @@ html_content = f"""<!DOCTYPE html>
 
             <!-- Option 1: Cloud Sync -->
             <div class="space-y-2">
-                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">☁️ Tùy Chọn 1: Đồng Bộ Từ Đám Mây GitHub</h4>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">☁️ Tùy Chọn 1: Đồng Bộ Từ Kho GitHub</h4>
                 <p class="text-xs text-gray-400">
-                    Máy chủ đám mây tự động cào kết quả từ Vietlott lúc 18:45 & 20:45 mỗi ngày. Bấm để tải các kỳ mới nhất:
+                    Tải dữ liệu các kỳ quay mới nhất đã được cập nhật trên kho GitHub:
                 </p>
                 <div class="flex flex-wrap gap-2">
                     <button id="btnSyncCloud" onclick="syncFromCloud()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-xl text-xs md:text-sm transition flex items-center justify-center gap-2 shadow-md">
-                        <span id="syncSpinner" class="hidden">⏳</span> 🔄 Đồng Bộ Từ Đám Mây
+                        <span id="syncSpinner" class="hidden">⏳</span> 🔄 Đồng Bộ Từ GitHub
                     </button>
-                    <a href="https://github.com/Gentsleo/xstk/actions/workflows/auto-update.yml" target="_blank" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 border border-brand-border">
-                        ⚡ Ép Cào Ngay (GitHub)
-                    </a>
                 </div>
                 <p class="text-[10px] text-gray-500 italic">
-                    * Máy chủ tự động cào và đẩy dữ liệu sau mỗi kỳ quay. Nút 'Đồng Bộ Từ Đám Mây' sẽ tải kỳ mới về máy bạn.
+                    * Lưu ý: Vietlott kích hoạt Cloudflare WAF chặn IP máy chủ nước ngoài (GitHub Actions). Tiến trình cào tự động chạy từ máy trạm nội địa (Cron job 30 phút/lần) và tự đẩy lên GitHub.
                 </p>
             </div>
 

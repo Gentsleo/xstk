@@ -1,9 +1,0 @@
-### 🌐 Kiểm tra kết nối từ GitHub Runner
-```
-403: https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/winning-number-535
-404: https://xskt.com.vn/ket-qua-xo-so-dien-toan/vietlott-lotto-535
-200: https://www.minhngoc.net.vn/ket-qua-xo-so/dien-toan-vietlott.html
-302: https://xoso.com.vn/vietlott.html
-```
-[2026-10-27 13:46:20] [*] Kiểm tra cập nhật... Kỳ hiện tại trong máy: #00970
-[2026-10-27 13:46:20] [!] Không thể kết nối với Vietlott: HTTP Error 403: Forbidden
