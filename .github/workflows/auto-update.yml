@@ -1,16 +1,7 @@
 name: Tự Động Cập Nhật Kỳ Quay Vietlott 5/35
 
 on:
-  push:
-    paths:
-      - '.github/workflows/auto-update.yml'
-  schedule:
-    # Vietlott Lotto 5/35 mở thưởng 2 kỳ/ngày.
-    # Chạy tự động lúc 11:45 UTC (18:45 VN) và 13:45 UTC (20:45 VN) mỗi ngày
-    - cron: '45 11,13 * * *'
-    # Chạy thêm một lần vào buổi sáng 01:00 UTC (08:00 VN) để đảm bảo đồng bộ
-    - cron: '0 1 * * *'
-  workflow_dispatch: # Cho phép người dùng bấm nút "Run workflow" thủ công bất cứ lúc nào
+  workflow_dispatch: # Cho phép người dùng chạy thử thủ công nếu cần
 
 permissions:
   contents: write
@@ -38,21 +29,21 @@ jobs:
 
       - name: Run Auto Update
         run: |
-          python auto_update.py
+          python auto_update.py || true
           python generate_web_app.py
+
       - name: Commit and push if new draws found
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --staged --quiet; then
-            echo "Không có kỳ quay mới nào từ Vietlott."
+            echo "Không phát hiện kỳ quay mới từ Vietlott (Lưu ý: Cloudflare WAF chặn IP runner nước ngoài)."
           else
             echo "Phát hiện kỳ quay mới! Đang commit và push..."
             git commit -m "chore(auto-update): cập nhật kết quả kỳ quay mới từ Vietlott [skip ci]"
             git push origin main
           fi
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
