@@ -53,8 +53,8 @@ jobs:
               print('ERROR connecting to Vietlott:', type(e).__name__, str(e))
           " >> $GITHUB_STEP_SUMMARY 2>&1 || true
           
-          # Ghi vào file log để kiểm tra qua git
-          cat $GITHUB_STEP_SUMMARY > ci_debug.log
+          # Ghi vào docs/ci_debug.txt để deploy ra GitHub Pages kiểm tra
+          cp $GITHUB_STEP_SUMMARY docs/ci_debug.txt
 
       - name: Run Auto Update
         run: |
@@ -65,6 +65,7 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             tail -n 20 auto_update.log >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 20 auto_update.log >> docs/ci_debug.txt
           fi
       - name: Commit and push if new draws found
         run: |
