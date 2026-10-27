@@ -1,6 +1,9 @@
 name: Tự Động Cập Nhật Kỳ Quay Vietlott 5/35
 
 on:
+  push:
+    paths:
+      - '.github/workflows/auto-update.yml'
   schedule:
     # Vietlott Lotto 5/35 mở thưởng 2 kỳ/ngày.
     # Chạy tự động lúc 11:45 UTC (18:45 VN) và 13:45 UTC (20:45 VN) mỗi ngày
