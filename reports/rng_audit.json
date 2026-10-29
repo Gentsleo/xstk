@@ -1,0 +1,47 @@
+{
+  "provenance": {
+    "version": 1,
+    "python": "3.10.12",
+    "numpy": "2.2.6",
+    "generator": "NumPy PCG64",
+    "seed": 20261029,
+    "warning": "Controlled hypotheses only; not a reconstruction of OKC/SmartPlay RNG.",
+    "n_draws": 976,
+    "first_id": 1,
+    "last_id": 976,
+    "data_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8"
+  },
+  "repetitions_per_bank": 1999,
+  "method": "Independent marginal calibration and max-surprise null bank; familywise Monte Carlo p.",
+  "exploratory": true,
+  "null": "iid uniform five-subsets and independent uniform special",
+  "statistics": {
+    "main_frequency": {
+      "value": 46.43647540983608,
+      "raw_p": 0.0205,
+      "bonferroni_p": 0.10250000000000001
+    },
+    "special_frequency": {
+      "value": 3.5983606557377055,
+      "raw_p": 0.9825,
+      "bonferroni_p": 1.0
+    },
+    "adjacent_overlap": {
+      "value": 0.497973099652191,
+      "raw_p": 0.622,
+      "bonferroni_p": 1.0
+    },
+    "qr_shape": {
+      "value": 4.613281605049172,
+      "raw_p": 0.3295,
+      "bonferroni_p": 1.0
+    },
+    "lag16_recurrence": {
+      "value": 0.0,
+      "raw_p": 1.0,
+      "bonferroni_p": 1.0
+    }
+  },
+  "familywise_p": 0.0745,
+  "caveat": "Exploratory historical audit; not RNG certification, fault attribution or predictive evidence."
+}

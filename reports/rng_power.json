@@ -1,0 +1,646 @@
+{
+  "provenance": {
+    "version": 1,
+    "python": "3.10.12",
+    "numpy": "2.2.6",
+    "generator": "NumPy PCG64",
+    "seed": 20261029,
+    "warning": "Controlled hypotheses only; not a reconstruction of OKC/SmartPlay RNG."
+  },
+  "alpha": 0.05,
+  "repetitions_per_bank": 999,
+  "statistics": [
+    "main_frequency",
+    "special_frequency",
+    "adjacent_overlap",
+    "qr_shape",
+    "lag16_recurrence"
+  ],
+  "hypotheses": {
+    "uniform": "Uniform combination index + independent uniform special; PCG64 research simulator.",
+    "B1": "Mixture with uniform subsets conditioned on containing number 1; special stays fair.",
+    "B2": "Mixture with byte modulo 35, reject entire duplicate rows; special byte modulo 12.",
+    "B3": "With probability strength copy previous main subset; special stays independent.",
+    "B4": "Each 16-draw block replays a fixed main/special template with probability strength.",
+    "B5": "Mixture with uniform subsets conditioned on the existing QR80 region; special fair."
+  },
+  "definition": "strength is a mixture/reset/copy probability, NOT an estimated real-world bias.",
+  "method": "Independent calibration, max-surprise null, independent fair validation and fault banks.",
+  "results": [
+    {
+      "n_draws": 250,
+      "false_positive": {
+        "rejected": 58,
+        "trials": 999,
+        "rate": 0.05805805805805806,
+        "wilson95": [
+          0.04517872495843212,
+          0.07432317413698764
+        ]
+      },
+      "alternatives": [
+        {
+          "model": "B1",
+          "strength": 0.02,
+          "rejected": 70,
+          "trials": 999,
+          "power": 0.07007007007007007,
+          "wilson95": [
+            0.05583257220429225,
+            0.08760132510370952
+          ]
+        },
+        {
+          "model": "B1",
+          "strength": 0.1,
+          "rejected": 353,
+          "trials": 999,
+          "power": 0.3533533533533533,
+          "wilson95": [
+            0.32432486384201326,
+            0.38350532464604786
+          ]
+        },
+        {
+          "model": "B1",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.02,
+          "rejected": 68,
+          "trials": 999,
+          "power": 0.06806806806806807,
+          "wilson95": [
+            0.0540468612039567,
+            0.08539836973528141
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.1,
+          "rejected": 54,
+          "trials": 999,
+          "power": 0.05405405405405406,
+          "wilson95": [
+            0.04166321249790446,
+            0.06986135385998794
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.3,
+          "rejected": 53,
+          "trials": 999,
+          "power": 0.05305305305305305,
+          "wilson95": [
+            0.04078752049535442,
+            0.06874271267815614
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.02,
+          "rejected": 341,
+          "trials": 999,
+          "power": 0.34134134134134136,
+          "wilson95": [
+            0.3125962832985969,
+            0.37130190697688226
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.1,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.02,
+          "rejected": 61,
+          "trials": 999,
+          "power": 0.06106106106106106,
+          "wilson95": [
+            0.04782789647791254,
+            0.0776570021706527
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.1,
+          "rejected": 233,
+          "trials": 999,
+          "power": 0.23323323323323322,
+          "wilson95": [
+            0.20806184304698053,
+            0.2604483633152603
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.3,
+          "rejected": 822,
+          "trials": 999,
+          "power": 0.8228228228228228,
+          "wilson95": [
+            0.7979225177117456,
+            0.8452499342513963
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.02,
+          "rejected": 43,
+          "trials": 999,
+          "power": 0.043043043043043044,
+          "wilson95": [
+            0.03211091988950797,
+            0.057475981440184246
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.1,
+          "rejected": 63,
+          "trials": 999,
+          "power": 0.06306306306306306,
+          "wilson95": [
+            0.04959957374191863,
+            0.0798739912754103
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.3,
+          "rejected": 290,
+          "trials": 999,
+          "power": 0.2902902902902903,
+          "wilson95": [
+            0.26298973297064243,
+            0.31919746490136314
+          ]
+        }
+      ]
+    },
+    {
+      "n_draws": 976,
+      "false_positive": {
+        "rejected": 53,
+        "trials": 999,
+        "rate": 0.05305305305305305,
+        "wilson95": [
+          0.04078752049535442,
+          0.06874271267815614
+        ]
+      },
+      "alternatives": [
+        {
+          "model": "B1",
+          "strength": 0.02,
+          "rejected": 81,
+          "trials": 999,
+          "power": 0.08108108108108109,
+          "wilson95": [
+            0.06571582427233555,
+            0.09965573806386643
+          ]
+        },
+        {
+          "model": "B1",
+          "strength": 0.1,
+          "rejected": 985,
+          "trials": 999,
+          "power": 0.985985985985986,
+          "wilson95": [
+            0.9766147199390599,
+            0.991634041078321
+          ]
+        },
+        {
+          "model": "B1",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.02,
+          "rejected": 52,
+          "trials": 999,
+          "power": 0.05205205205205205,
+          "wilson95": [
+            0.03991316945386485,
+            0.06762273053526388
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.1,
+          "rejected": 38,
+          "trials": 999,
+          "power": 0.03803803803803804,
+          "wilson95": [
+            0.02783696533125702,
+            0.051778270076526016
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.3,
+          "rejected": 53,
+          "trials": 999,
+          "power": 0.05305305305305305,
+          "wilson95": [
+            0.04078752049535442,
+            0.06874271267815614
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.02,
+          "rejected": 818,
+          "trials": 999,
+          "power": 0.8188188188188188,
+          "wilson95": [
+            0.7937276065999842,
+            0.8414675126256302
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.1,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.02,
+          "rejected": 95,
+          "trials": 999,
+          "power": 0.09509509509509509,
+          "wilson95": [
+            0.0784243046783125,
+            0.11486792223923513
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.1,
+          "rejected": 635,
+          "trials": 999,
+          "power": 0.6356356356356356,
+          "wilson95": [
+            0.6053261022806805,
+            0.6649060442030582
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.02,
+          "rejected": 63,
+          "trials": 999,
+          "power": 0.06306306306306306,
+          "wilson95": [
+            0.04959957374191863,
+            0.0798739912754103
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.1,
+          "rejected": 126,
+          "trials": 999,
+          "power": 0.12612612612612611,
+          "wilson95": [
+            0.10696093434098802,
+            0.14815562129239646
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.3,
+          "rejected": 967,
+          "trials": 999,
+          "power": 0.9679679679679679,
+          "wilson95": [
+            0.9551307414327821,
+            0.9772200222657257
+          ]
+        }
+      ]
+    },
+    {
+      "n_draws": 2000,
+      "false_positive": {
+        "rejected": 39,
+        "trials": 999,
+        "rate": 0.03903903903903904,
+        "wilson95": [
+          0.028687778637417727,
+          0.05292178995474714
+        ]
+      },
+      "alternatives": [
+        {
+          "model": "B1",
+          "strength": 0.02,
+          "rejected": 49,
+          "trials": 999,
+          "power": 0.04904904904904905,
+          "wilson95": [
+            0.03729853067125312,
+            0.0642543697647301
+          ]
+        },
+        {
+          "model": "B1",
+          "strength": 0.1,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B1",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.02,
+          "rejected": 37,
+          "trials": 999,
+          "power": 0.037037037037037035,
+          "wilson95": [
+            0.02698828704448876,
+            0.05063261517891243
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.1,
+          "rejected": 37,
+          "trials": 999,
+          "power": 0.037037037037037035,
+          "wilson95": [
+            0.02698828704448876,
+            0.05063261517891243
+          ]
+        },
+        {
+          "model": "B2",
+          "strength": 0.3,
+          "rejected": 54,
+          "trials": 999,
+          "power": 0.05405405405405406,
+          "wilson95": [
+            0.04166321249790446,
+            0.06986135385998794
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.02,
+          "rejected": 987,
+          "trials": 999,
+          "power": 0.987987987987988,
+          "wilson95": [
+            0.9791219726992664,
+            0.9931154546868783
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.1,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B3",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.02,
+          "rejected": 87,
+          "trials": 999,
+          "power": 0.08708708708708708,
+          "wilson95": [
+            0.07114612027101525,
+            0.10619144117147772
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.1,
+          "rejected": 892,
+          "trials": 999,
+          "power": 0.8928928928928929,
+          "wilson95": [
+            0.8721888589816461,
+            0.9105869158882242
+          ]
+        },
+        {
+          "model": "B4",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.02,
+          "rejected": 45,
+          "trials": 999,
+          "power": 0.04504504504504504,
+          "wilson95": [
+            0.033833514873224405,
+            0.05974205282523147
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.1,
+          "rejected": 222,
+          "trials": 999,
+          "power": 0.2222222222222222,
+          "wilson95": [
+            0.1975334691307355,
+            0.24903907220330518
+          ]
+        },
+        {
+          "model": "B5",
+          "strength": 0.3,
+          "rejected": 999,
+          "trials": 999,
+          "power": 1.0,
+          "wilson95": [
+            0.9961694255987266,
+            0.9999999999999998
+          ]
+        }
+      ]
+    }
+  ],
+  "sample_size_grid": [
+    {
+      "model": "B1",
+      "strength": 0.02,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B1",
+      "strength": 0.1,
+      "smallest_tested_n_with_power_lower95_ge80": 976
+    },
+    {
+      "model": "B1",
+      "strength": 0.3,
+      "smallest_tested_n_with_power_lower95_ge80": 250
+    },
+    {
+      "model": "B2",
+      "strength": 0.02,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B2",
+      "strength": 0.1,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B2",
+      "strength": 0.3,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B3",
+      "strength": 0.02,
+      "smallest_tested_n_with_power_lower95_ge80": 2000
+    },
+    {
+      "model": "B3",
+      "strength": 0.1,
+      "smallest_tested_n_with_power_lower95_ge80": 250
+    },
+    {
+      "model": "B3",
+      "strength": 0.3,
+      "smallest_tested_n_with_power_lower95_ge80": 250
+    },
+    {
+      "model": "B4",
+      "strength": 0.02,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B4",
+      "strength": 0.1,
+      "smallest_tested_n_with_power_lower95_ge80": 2000
+    },
+    {
+      "model": "B4",
+      "strength": 0.3,
+      "smallest_tested_n_with_power_lower95_ge80": 976
+    },
+    {
+      "model": "B5",
+      "strength": 0.02,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B5",
+      "strength": 0.1,
+      "smallest_tested_n_with_power_lower95_ge80": null
+    },
+    {
+      "model": "B5",
+      "strength": 0.3,
+      "smallest_tested_n_with_power_lower95_ge80": 976
+    }
+  ],
+  "caveat": "Power applies only to specified faults and tested lengths; null means insufficient grid evidence, not impossible detection."
+}

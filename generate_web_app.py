@@ -16,7 +16,7 @@ html_content = f"""<!DOCTYPE html>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>XSTK - Vietlott Lotto 5/35 | Điểm cấu trúc SQS &amp; 2 vé rời nhau</title>
+    <title>XSTK - Vietlott Lotto 5/35 | Vé ngẫu nhiên đều &amp; 2 vé rời nhau</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -203,7 +203,7 @@ html_content = f"""<!DOCTYPE html>
                 🎯 XSTK - Vietlott Lotto 5/35 <span class="text-xs px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-mono">v2.4</span>
             </h1>
             <p class="text-xs md:text-sm text-gray-400 mt-1">
-                Điểm cấu trúc SQS: Mahalanobis &bull; Entropy khoảng trống &bull; 2 vé chính rời nhau
+                Tạo vé ngẫu nhiên đều &bull; QR 80% và SQS chỉ mô tả &bull; 2 vé chính rời nhau
             </p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2.5 w-full md:w-auto">
@@ -231,7 +231,7 @@ html_content = f"""<!DOCTYPE html>
             🎯 Hai Vé Rời Nhau Từ Bể 10 Số
         </button>
         <button onclick="switchTab('tab-gen')" id="btn-gen" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-            ⚡ Gợi Ý Bộ Số Cân Đối
+            ⚡ Tạo Vé Ngẫu Nhiên Đều
         </button>
         <button onclick="switchTab('tab-history')" id="btn-history" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
             📊 <span id="tabHistoryTitle">Lịch Sử ({total_draws} Kỳ)</span>
@@ -335,14 +335,14 @@ html_content = f"""<!DOCTYPE html>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 class="text-lg md:text-xl font-extrabold text-brand-primary flex items-center gap-2">
-                        🎯 Bể 10 Số, Chia Thành 2 Vé Chính Rời Nhau
+                        🎯 Lấy Đều Bể 10 Số, Chia 2 Vé Chính Rời Nhau
                     </h2>
                     <p class="text-xs md:text-sm text-gray-400 mt-1">
-                        Chọn bể 10 số theo độ trải đều, rồi chia thành 2 vé có tổng điểm cấu trúc SQS cao. Không có bể số nào được dự đoán sẽ xuất hiện.
+                        Lấy đều 10 số chính trong 1–35 rồi chia thành hai vé rời nhau: mỗi vé riêng lẻ phân bố đều trên 324632 bộ 5 số, nhưng hai vé phụ thuộc nhau vì không trùng số chính. Số đặc biệt được lấy độc lập trong 1–12; QR 80%, entropy và SQS chỉ mô tả.
                     </p>
                 </div>
                 <button onclick="handleGenerateWheel()" class="px-5 py-3 bg-brand-primary text-gray-900 font-extrabold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm flex items-center gap-2">
-                    🎲 Tạo 2 Vé
+                    🎲 Tạo Đều 2 Vé Rời Nhau
                 </button>
             </div>
 
@@ -355,7 +355,7 @@ html_content = f"""<!DOCTYPE html>
                     Hai vé chứa hai nhóm 5 số chính rời nhau trong bể 10 số. <strong>Nếu cả 5 số chính quay ra đều nằm trong bể</strong>, ít nhất một vé khớp ≥ 3 số chính. Với hai vé cố định, xác suất vô điều kiện có ít nhất một vé khớp ≥ 3 số chính là 9002/324632 ≈ 2,773% (không phải 100%).
                 </p>
                 <div class="text-[11px] text-blue-400 font-semibold">
-                    Mỗi vé 5+1 cụ thể có xác suất trúng đúng cả 5 số chính và số đặc biệt là 1/(324632 × 12) = 1/3.895.584. Hai số đặc biệt khác nhau để mở rộng phạm vi, không làm tăng xác suất của từng vé.
+                    Mỗi vé 5+1 cụ thể có xác suất trúng đúng cả 5 số chính và số đặc biệt là 1/(324632 × 12) = 1/3.895.584. Hai số đặc biệt được chọn đều và độc lập trong 1–12, có thể trùng nhau hoặc trùng số chính; không làm tăng xác suất của từng vé.
                 </div>
             </div>
         </div>
@@ -366,7 +366,7 @@ html_content = f"""<!DOCTYPE html>
             <div class="bg-brand-card border border-brand-border rounded-2xl p-5 shadow-xl space-y-3">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-brand-border pb-3">
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        BỂ 10 SỐ ĐƯỢC CHỌN THEO ĐỘ TRẢI ĐỀU:
+                        BỂ 10 SỐ TỪ HAI VÉ RỜI NHAU:
                     </span>
                     <span id="wheelPoolMetrics" class="text-xs font-semibold text-brand-secondary">--</span>
                 </div>
@@ -387,6 +387,7 @@ html_content = f"""<!DOCTYPE html>
                         <div class="flex justify-between"><span>Chẵn / Lẻ:</span><span id="t1Parity" class="text-gray-300">--</span></div>
                         <div class="flex justify-between"><span>Tổng kỳ chưa xuất hiện:</span><span id="t1SkipSum" class="text-brand-secondary">--</span></div>
                         <div class="flex justify-between"><span>Trùng kỳ trước:</span><span id="t1Repeat" class="text-gray-300">--</span></div>
+                        <div class="flex justify-between"><span>Miền QR 80%:</span><span id="t1QR" class="text-gray-300">--</span></div>
                     </div>
                 </div>
 
@@ -402,6 +403,7 @@ html_content = f"""<!DOCTYPE html>
                         <div class="flex justify-between"><span>Chẵn / Lẻ:</span><span id="t2Parity" class="text-gray-300">--</span></div>
                         <div class="flex justify-between"><span>Tổng kỳ chưa xuất hiện:</span><span id="t2SkipSum" class="text-brand-secondary">--</span></div>
                         <div class="flex justify-between"><span>Trùng kỳ trước:</span><span id="t2Repeat" class="text-gray-300">--</span></div>
+                        <div class="flex justify-between"><span>Miền QR 80%:</span><span id="t2QR" class="text-gray-300">--</span></div>
                     </div>
                 </div>
             </div>
@@ -422,10 +424,10 @@ html_content = f"""<!DOCTYPE html>
                 <label class="font-bold text-xs md:text-sm text-gray-300">Số lượng:</label>
                 <input id="genCount" type="number" min="1" max="20" value="5" class="w-16 p-2 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
                 <button onclick="handleGenerate()" class="px-5 py-2.5 bg-brand-primary text-gray-900 font-bold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm">
-                    ⚡ Gợi Ý Bộ Số Cân Đối
+                    ⚡ Tạo Vé Ngẫu Nhiên Đều
                 </button>
             </div>
-            <span class="text-xs text-gray-400 italic">Lấy mẫu ngẫu nhiên trên toàn bộ 1–35, xếp theo điểm cấu trúc; không tăng xác suất trúng.</span>
+            <span class="text-xs text-gray-400 italic">Lấy mẫu đều từ toàn bộ 324632 bộ 5 số chính trong 1–35, không lọc theo QR 80%, SQS hay lịch sử. Mỗi số đặc biệt lấy độc lập, đều trong 1–12, có thể trùng số chính hoặc số đặc biệt của vé khác; QR chỉ mô tả vé sau khi tạo.</span>
         </div>
 
         <div id="genResultList" class="space-y-3"></div>
@@ -473,17 +475,17 @@ html_content = f"""<!DOCTYPE html>
     <div id="tab-qr-theory" class="tab-content hidden space-y-6">
         <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
             <h2 class="text-lg md:text-xl font-extrabold text-brand-primary flex items-center gap-2">
-                📐 Cách Tính SQS &amp; Phạm Vi Bao Phủ
+                📐 Miền Dung Sai QR 80%, SQS &amp; Phạm Vi Bao Phủ
             </h2>
             <p class="text-xs md:text-sm text-gray-300 leading-relaxed">
-                Mọi bộ 5 số chính trong 1–35 và mọi số đặc biệt trong 1–12 đều có cùng xác suất được quay. SQS chỉ mô tả hình dạng bộ số, không phải xác suất chiến thắng hay dự báo từ dữ liệu lịch sử.
+                Mọi bộ 5 số chính trong 1–35 và mọi số đặc biệt trong 1–12 đều có cùng xác suất được quay. Vé được tạo đều trong toàn bộ không gian số; miền dung sai QR 80% chỉ phân loại hình dạng sau khi tạo, không phải dự đoán. SQS và entropy chỉ mô tả, không dùng để xếp hạng hay lọc vé.
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
                     <h4 class="font-bold text-sm text-brand-secondary">1. Trung tâm cấu trúc Mahalanobis ($D_M^2$)</h4>
                     <p class="text-xs text-gray-400">
-                        Đo khoảng cách của tổng, số lẻ, số cao (≥ 18), khoảng trải và số cặp liên tiếp so với trung bình lý thuyết. Hàm đuôi χ² với 5 bậc tự do là thang tham chiếu để chấm điểm, không phải xác suất trúng vé.
+                        Đo khoảng cách của tổng, số lẻ, số cao (≥ 18), khoảng trải và số cặp liên tiếp so với trung bình lý thuyết. Miền D² ≤ 7,055639346938778 chứa đúng 259706/324632 bộ 5 số (≈ 80% dưới phép quay đều); dùng D² chưa làm tròn để phân loại sau khi tạo, không lọc vé. Đuôi χ²₅ chỉ là thang tham chiếu điểm, không phải xác suất trúng.
                     </p>
                 </div>
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
@@ -495,7 +497,7 @@ html_content = f"""<!DOCTYPE html>
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
                     <h4 class="font-bold text-sm text-brand-secondary">3. Công thức điểm SQS</h4>
                     <p class="text-xs text-gray-400">
-                        SQS = 100 × (1 − Fχ²₅(D²)) × (0,8 + 0,2 × hệ số entropy), làm tròn 1 chữ số thập phân. Số đặc biệt, độ vắng và số trùng kỳ trước không tham gia tính điểm.
+                        SQS = 100 × (1 − Fχ²₅(D²)) × (0,8 + 0,2 × hệ số entropy), làm tròn 1 chữ số thập phân. Chỉ dùng để mô tả; không tối đa hóa SQS hay entropy khi tạo vé. Số đặc biệt, độ vắng và số trùng kỳ trước không dùng để lọc hay ưu tiên vé.
                     </p>
                 </div>
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
@@ -695,6 +697,7 @@ html_content = f"""<!DOCTYPE html>
                 span,
                 consecs,
                 dmSq: dmSq.toFixed(2),
+                dmSqRaw: dmSq,
                 pMain: pMain.toFixed(4),
                 entropy: entropy.toFixed(3),
                 sqs,
@@ -923,8 +926,7 @@ html_content = f"""<!DOCTYPE html>
                 btn.classList.add('border-brand-primary', 'text-brand-primary');
             }}
             if (tabId === 'tab-wheel' && !window.hasGeneratedWheel) {{
-                handleGenerateWheel();
-                window.hasGeneratedWheel = true;
+                window.hasGeneratedWheel = handleGenerateWheel();
             }}
         }}
 
@@ -1025,78 +1027,53 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('resAntiCluster').innerText = res.antiStatus;
         }}
 
-        // Uniform special ball; exclude only the sibling ticket's special for breadth.
-        function chooseSpecialBall(excludeSp=null) {{
-            const pick = Math.floor(Math.random() * (excludeSp === null ? 12 : 11)) + 1;
-            return excludeSp !== null && pick >= excludeSp ? pick + 1 : pick;
+        // A uniform 32-bit draw is accepted only below the largest multiple of n.
+        const RANDOM_UINT32 = new Uint32Array(1);
+        function secureBoundedInt(n) {{
+            if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== 'function') {{
+                throw new Error('Trình duyệt không hỗ trợ crypto.getRandomValues; không thể tạo vé an toàn.');
+            }}
+            const limit = Math.floor(0x100000000 / n) * n;
+            do {{
+                globalThis.crypto.getRandomValues(RANDOM_UINT32);
+            }} while (RANDOM_UINT32[0] >= limit);
+            return RANDOM_UINT32[0] % n;
         }}
-        // Partition an aesthetically spread 10-number pool into two disjoint tickets.
+
+        // First size entries of a partial Fisher–Yates shuffle are uniform and distinct.
+        function sampleDistinct(size) {{
+            const numbers = Array.from({{length: 35}}, (_, i) => i + 1);
+            for (let i = 0; i < size; i++) {{
+                const j = i + secureBoundedInt(35 - i);
+                [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+            }}
+            return numbers.slice(0, size);
+        }}
+
+        function chooseSpecialBall() {{
+            return secureBoundedInt(12) + 1;
+        }}
+        const QR_DESCRIPTOR_LIMIT = 7.055639346938778;
+        function qrRegionLabel(result) {{
+            return result.dmSqRaw <= QR_DESCRIPTOR_LIMIT ? 'Trong miền QR 80%' : 'Ngoài miền QR 80%';
+        }}
         let CURRENT_WHEEL_TICKETS = [];
 
         function handleGenerateWheel() {{
-
-            // Sample all 35 main numbers without exclusions; choose an aesthetically spread pool.
-            let bestPool = null;
-            let bestScore = -Infinity;
-            for (let iter = 0; iter < 12000; iter++) {{
-                const numbers = Array.from({{length: 35}}, (_, i) => i + 1);
-                for (let i = 0; i < 10; i++) {{
-                    const j = i + Math.floor(Math.random() * (35 - i));
-                    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
-                }}
-                const cand = numbers.slice(0, 10).sort((a, b) => a - b);
-
-                // Entropy of the 11 gaps spanning 1..35.
-
-                const gaps = [cand[0], ...cand.slice(1).map((x, i) => x - cand[i]), 36 - cand[9]];
-                let entropy = 0;
-                for (const g of gaps) {{
-                    const p = g / 36.0;
-                    if (p > 0) entropy -= p * Math.log(p);
-                }}
-
-                const score = entropy;
-                if (score > bestScore) {{
-                    bestScore = score;
-                    bestPool = cand;
-                }}
+            let t1, t2, sp1, sp2;
+            try {{
+                const numbers = sampleDistinct(10);
+                t1 = numbers.slice(0, 5).sort((a, b) => a - b);
+                t2 = numbers.slice(5, 10).sort((a, b) => a - b);
+                sp1 = chooseSpecialBall();
+                sp2 = chooseSpecialBall();
+            }} catch (err) {{
+                showToast(err.message, true);
+                return false;
             }}
-
-            // Partition into 2 tickets with maximal total descriptive SQS.
-            let bestPair = null;
-            let maxSqs = -1;
-
-            // Generate 5-element combinations
-            function getCombinations(arr, k) {{
-                if (k === 1) return arr.map(x => [x]);
-                const res = [];
-                for (let i = 0; i <= arr.length - k; i++) {{
-                    const head = arr[i];
-                    const tails = getCombinations(arr.slice(i + 1), k - 1);
-                    tails.forEach(t => res.push([head, ...t]));
-                }}
-                return res;
-            }}
-
-            const allCombos = getCombinations(bestPool, 5);
-            for (const t1 of allCombos) {{
-                const t2 = bestPool.filter(x => !t1.includes(x));
-                if (t1[0] > t2[0]) continue;
-
-                const r1 = evaluateCombo(t1);
-                const r2 = evaluateCombo(t2);
-
-                const total = r1.sqs + r2.sqs;
-
-                if (total > maxSqs) {{
-                    maxSqs = total;
-                    bestPair = [t1, t2, r1, r2];
-                }}
-            }}
-
-            const [t1, t2, r1, r2] = bestPair;
-            const sp1 = chooseSpecialBall();
-            const sp2 = chooseSpecialBall(sp1);
+            const r1 = evaluateCombo(t1);
+            const r2 = evaluateCombo(t2);
+            const bestPool = [...t1, ...t2].sort((a, b) => a - b);
 
             CURRENT_WHEEL_TICKETS = [
                 {{ nums: t1, special: sp1, sqs: r1.sqs }},
@@ -1142,6 +1119,7 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('t1Parity').innerText = `${{r1.odds}}L - ${{r1.evens}}C`;
             document.getElementById('t1SkipSum').innerText = `${{r1.skipSum}} kỳ`;
             document.getElementById('t1Repeat').innerText = `${{r1.repeatCount}} số trùng`;
+            document.getElementById('t1QR').innerText = qrRegionLabel(r1);
 
             // Render T2
             const t2Container = document.getElementById('t2Balls');
@@ -1166,15 +1144,17 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('t2Parity').innerText = `${{r2.odds}}L - ${{r2.evens}}C`;
             document.getElementById('t2SkipSum').innerText = `${{r2.skipSum}} kỳ`;
             document.getElementById('t2Repeat').innerText = `${{r2.repeatCount}} số trùng`;
+            document.getElementById('t2QR').innerText = qrRegionLabel(r2);
 
-            showToast("Đã tạo 2 vé rời nhau, điểm SQS chỉ mô tả cấu trúc.");
+            showToast("Đã lấy đều 2 vé chính rời nhau từ toàn bộ không gian số; QR và SQS chỉ mô tả.");
+            return true;
         }}
 
         function copyWheelTickets() {{
             if (CURRENT_WHEEL_TICKETS.length < 2) return;
             const t1 = CURRENT_WHEEL_TICKETS[0];
             const t2 = CURRENT_WHEEL_TICKETS[1];
-            const text = `🎯 HAI VÉ 5+1 (SQS chỉ mô tả cấu trúc):\nVé 1: ${{t1.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t1.special).padStart(2,'0')}} (SQS: ${{t1.sqs}})\nVé 2: ${{t2.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t2.special).padStart(2,'0')}} (SQS: ${{t2.sqs}})\nNếu cả 5 số chính quay ra nằm trong bể 10 số thì một vé khớp ≥3 số; xác suất vô điều kiện khớp ≥3 số là 9002/324632.`;
+            const text = `🎯 HAI VÉ 5+1 (lấy đều từ toàn bộ số chính, rời nhau; QR/SQS chỉ mô tả):\nVé 1: ${{t1.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t1.special).padStart(2,'0')}} (SQS: ${{t1.sqs}})\nVé 2: ${{t2.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t2.special).padStart(2,'0')}} (SQS: ${{t2.sqs}})\nNếu cả 5 số chính quay ra nằm trong bể 10 số thì một vé khớp ≥3 số; xác suất vô điều kiện khớp ≥3 số là 9002/324632.`;
             navigator.clipboard.writeText(text).then(() => {{
                 showToast("📋 Đã sao chép 2 vé vào bộ nhớ tạm để mua ngay!");
             }}).catch(() => {{
@@ -1185,26 +1165,23 @@ html_content = f"""<!DOCTYPE html>
         function handleGenerate() {{
             const count = Math.min(20, Math.max(1, parseInt(document.getElementById('genCount').value, 10) || 5));
             const container = document.getElementById('genResultList');
-            container.innerHTML = '';
-
-            // Sample uniformly across the full main-number space, then rank aesthetics.
-            const samples = [];
+            const tickets = [];
             const seen = new Set();
-            for (let attempt = 0; attempt < 4000; attempt++) {{
-                const combo = [];
-                while (combo.length < 5) {{
-                    const r = Math.floor(Math.random() * 35) + 1;
-                    if (!combo.includes(r)) combo.push(r);
+            try {{
+                // Only repeated main subsets are rejected; every new subset remains equally likely.
+                while (tickets.length < count) {{
+                    const combo = sampleDistinct(5).sort((a, b) => a - b);
+                    const key = combo.join(',');
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    tickets.push({{ combo, special: chooseSpecialBall() }});
                 }}
-                combo.sort((a, b) => a - b);
-                const key = combo.join(',');
-                if (seen.has(key)) continue;
-                seen.add(key);
-                samples.push(evaluateCombo(combo));
+            }} catch (err) {{
+                showToast(err.message, true);
+                return;
             }}
-            samples.sort((a, b) => b.sqs - a.sqs);
-            const found = samples.slice(0, count);
-            found.forEach(r => {{ r.special = chooseSpecialBall(); }});
+            const found = tickets.map(ticket => evaluateCombo(ticket.combo, ticket.special));
+            const fragment = document.createDocumentFragment();
 
             found.forEach((r, idx) => {{
                 const item = document.createElement('div');
@@ -1223,12 +1200,13 @@ html_content = f"""<!DOCTYPE html>
                         <span>${{r.odds}}L - ${{r.evens}}C</span>
                         <span>Kỳ chưa xuất hiện (tham khảo): <strong class="text-brand-secondary">${{r.skipSum}}</strong></span>
                         <span class="px-2.5 py-1 rounded-lg font-bold bg-green-900/40 text-green-400 border border-green-700/50">SQS cấu trúc: ${{r.sqs.toFixed(1)}}</span>
+                        <span class="px-2.5 py-1 rounded-lg font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">${{qrRegionLabel(r)}}</span>
                     </div>
                 `;
-                container.appendChild(item);
+                fragment.appendChild(item);
             }});
-
-            showToast(`Đã gợi ý ${{found.length}} bộ số theo cấu trúc, không phải dự đoán.`);
+            container.replaceChildren(fragment);
+            showToast(`Đã lấy đều ${{found.length}} vé từ toàn bộ 324632 bộ 5 số; QR và SQS chỉ mô tả.`);
         }}
 
         function renderHistoryTable() {{

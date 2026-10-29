@@ -2,7 +2,6 @@
 import sys
 import os
 import sqlite3
-import random
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QTabWidget, QVBoxLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget,
@@ -13,7 +12,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
 
 # Import evaluation logic
-from qr_filter import evaluate_combination, suggest_balanced
+from qr_filter import evaluate_combination, suggest_uniform
 
 BASE_DIR = "/home/tringuyen/xstk"
 DB_PATH = os.path.join(BASE_DIR, "vietlott_535.db")
@@ -158,7 +157,7 @@ class XSTKMainWindow(QMainWindow):
         # Tabs
         self.tabs = QTabWidget()
         self.tabs.addTab(self.create_evaluate_tab(), "🔍 Đánh Giá Bộ Số")
-        self.tabs.addTab(self.create_generator_tab(), "⚡ Gợi Ý Bộ Số Cân Đối")
+        self.tabs.addTab(self.create_generator_tab(), "⚡ Sinh Vé Ngẫu Nhiên")
         self.tabs.addTab(self.create_history_tab(), "📊 Lịch Sử Kỳ Quay")
         self.tabs.addTab(self.create_charts_tab(), "📈 Biểu Đồ Thống Kê")
         self.tabs.addTab(self.create_qr_theory_tab(), "📐 Giải Thích Thống Kê")
@@ -290,6 +289,7 @@ class XSTKMainWindow(QMainWindow):
                 f"• Độ rộng bộ số (Span):       {res['span']} ({res['combo'][0]:02d} -> {res['combo'][-1]:02d})",
                 f"• Cặp số liền kề:             {res['consecs']} cặp",
                 f"• Khoảng cách Mahalanobis:    D_M^2 = {res['dm_sq']} (mô tả hình dạng bộ số)",
+                f"• Vùng QR 80% (chỉ mô tả): {'Trong vùng' if res['in_qr80'] else 'Ngoài vùng'} (không lọc vé)",
                 f"• Điểm tham chiếu χ²(5):      {res['p_val_main']:.4f} (xấp xỉ, không phải xác suất trúng)",
                 f"• Shannon Gap Entropy:        H = {res['gap_entropy']} / 1.79 ({res['entropy_pct']}% tối đa)",
             ]
@@ -316,7 +316,7 @@ class XSTKMainWindow(QMainWindow):
         layout = QVBoxLayout(tab)
         layout.setSpacing(15)
 
-        ctrl_group = QGroupBox("Chọn bộ số cân đối về hình thức (không tăng xác suất trúng)")
+        ctrl_group = QGroupBox("Sinh đều trên toàn bộ C(35,5) tổ hợp (không lọc theo QR/SQS)")
         ctrl_layout = QHBoxLayout(ctrl_group)
         
         ctrl_layout.addWidget(QLabel("Số lượng bộ số cần tạo:"))
@@ -325,7 +325,7 @@ class XSTKMainWindow(QMainWindow):
         self.spin_count.setValue(5)
         ctrl_layout.addWidget(self.spin_count)
 
-        btn_gen = QPushButton("⚡ Gợi Ý Bộ Số Cân Đối")
+        btn_gen = QPushButton("⚡ Sinh Vé Ngẫu Nhiên")
         btn_gen.clicked.connect(self.run_generation)
         ctrl_layout.addWidget(btn_gen)
         ctrl_layout.addStretch()
@@ -343,7 +343,7 @@ class XSTKMainWindow(QMainWindow):
 
     def run_generation(self):
         count = self.spin_count.value()
-        found = suggest_balanced(count)
+        found = suggest_uniform(count)
 
         self.table_gen.setRowCount(len(found))
         for row_idx, r in enumerate(found):
@@ -365,7 +365,7 @@ class XSTKMainWindow(QMainWindow):
             item_sqs.setForeground(QColor("#a6e3a1"))
             self.table_gen.setItem(row_idx, 6, item_sqs)
             
-            self.table_gen.setItem(row_idx, 7, QTableWidgetItem("Cân đối hình thức"))
+            self.table_gen.setItem(row_idx, 7, QTableWidgetItem("Trong vùng QR 80%" if r["in_qr80"] else "Ngoài vùng QR 80%"))
 
     # ------------------ TAB 3: LỊCH SỬ KỲ QUAY ------------------
     def create_history_tab(self):
@@ -479,15 +479,20 @@ class XSTKMainWindow(QMainWindow):
         dùng ma trận hiệp phương sai để xét các đặc trưng có tương quan;
         điểm tham chiếu &chi;<sup>2</sup>(5) chỉ là xấp xỉ mô tả, không phải
         xác suất trúng hay xếp hạng khả năng quay ra của một bộ số.</p>
+        <p>Vùng QR 80% là D² ≤ 7,055639346938778, chứa 259.706/324.632
+        tổ hợp lý thuyết. Bộ số được sinh đều từ toàn bộ C(35,5) tổ hợp,
+        không lọc theo QR, SQS, entropy hay lịch sử. QR chỉ mô tả vé sau khi sinh;
+        đây là phép tương tự về dung sai, không phải mã sửa sai QR.</p>
         <p>Entropy khoảng cách H = -&Sigma; p<sub>i</sub> ln(p<sub>i</sub>)
         mô tả mức rải đều trên dải 1–35, không làm tăng cơ hội trúng.
         Với 5 số chọn từ 1–35, sáu khoảng trống dương có tổng 36,
         trung bình mỗi khoảng là 6.</p>
-        <p>Hai vé không giao nhau chỉ bảo đảm ít nhất một vé khớp
-        từ 3 số chính trở lên <b>nếu</b> cả 5 số trúng đều nằm trong
-        tập hợp 10 số của hai vé. Không có bảo đảm vô điều kiện:
-        xác suất ít nhất một vé khớp từ 3 số chính trở lên
-        là 9002/324632 cho một kỳ quay.</p>
+        <p>Hai vé trong dàn 10 số không giao nhau; mỗi vé riêng lẻ đều trên
+        C(35,5), nhưng hai vé phụ thuộc nhau vì không có số chính chung.
+        Chỉ bảo đảm ít nhất một vé khớp từ 3 số chính trở lên <b>nếu</b>
+        cả 5 số trúng đều nằm trong tập hợp 10 số của hai vé.
+        Không có bảo đảm vô điều kiện: xác suất ít nhất một vé khớp
+        từ 3 số chính trở lên là 9002/324632 cho một kỳ quay.</p>
         """
         txt.setHtml(html)
         layout.addWidget(txt)

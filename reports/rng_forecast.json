@@ -1,0 +1,181 @@
+{
+  "mode": "retrospective",
+  "status": "retrospective_already_inspected",
+  "evidence": {
+    "prospective": false,
+    "n_new": 0,
+    "selected_model": "frequency",
+    "log_evalue": null,
+    "prefix_verified": false
+  },
+  "note": "Toàn bộ lịch sử hiện có đã có thể được xem; test không phải holdout nguyên sơ. Không có bằng chứng lợi thế dự báo từ kết quả hồi cứu.",
+  "config": {
+    "version": 1,
+    "seed": 535,
+    "min_train": 200,
+    "validation": 200,
+    "bin_edges_d2": [
+      2.467829346938774,
+      3.5923799183673473,
+      4.9016366326530605,
+      7.055639346938778
+    ],
+    "bin_sizes": [
+      64950,
+      64909,
+      64931,
+      64916,
+      64926
+    ],
+    "bin_prior": 20.0,
+    "frequency_prior_main": 20.0,
+    "prior_special": 5.0,
+    "ticket_rng": "seed-sequence(seed, draw_id, model)"
+  },
+  "history_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8",
+  "history_draws": 976,
+  "last_draw_id": 976,
+  "selected_model": "frequency",
+  "selection_rule": "tối thiểu log-loss joint validation giữa frequency và qr; hòa chọn frequency",
+  "validation_draw_ids": [
+    201,
+    400
+  ],
+  "test_draw_ids": [
+    401,
+    976
+  ],
+  "validation": {
+    "uniform": {
+      "mean_logloss_main": 12.690447512074883,
+      "mean_logloss_special": 2.4849066497880004,
+      "mean_logloss_joint": 15.175354161862883,
+      "delta_vs_uniform_main": 0.0,
+      "delta_vs_uniform_special": 0.0,
+      "delta_vs_uniform_joint": 0.0,
+      "main_hits_0_to_5": [
+        88,
+        87,
+        24,
+        1,
+        0,
+        0
+      ],
+      "special_hits": 25,
+      "draws": 200
+    },
+    "frequency": {
+      "mean_logloss_main": 12.680826962765344,
+      "mean_logloss_special": 2.5093802541833092,
+      "mean_logloss_joint": 15.190207216948654,
+      "delta_vs_uniform_main": -0.009620549309538262,
+      "delta_vs_uniform_special": 0.02447360439530888,
+      "delta_vs_uniform_joint": 0.01485305508577106,
+      "main_hits_0_to_5": [
+        73,
+        96,
+        27,
+        4,
+        0,
+        0
+      ],
+      "special_hits": 17,
+      "draws": 200
+    },
+    "qr": {
+      "mean_logloss_main": 12.692357473211581,
+      "mean_logloss_special": 2.5093802541833092,
+      "mean_logloss_joint": 15.20173772739489,
+      "delta_vs_uniform_main": 0.0019099611366986124,
+      "delta_vs_uniform_special": 0.02447360439530888,
+      "delta_vs_uniform_joint": 0.026383565532007935,
+      "main_hits_0_to_5": [
+        89,
+        89,
+        21,
+        1,
+        0,
+        0
+      ],
+      "special_hits": 17,
+      "draws": 200
+    }
+  },
+  "test": {
+    "uniform": {
+      "mean_logloss_main": 12.690447512074883,
+      "mean_logloss_special": 2.4849066497880004,
+      "mean_logloss_joint": 15.175354161862883,
+      "delta_vs_uniform_main": 0.0,
+      "delta_vs_uniform_special": 0.0,
+      "delta_vs_uniform_joint": 0.0,
+      "main_hits_0_to_5": [
+        231,
+        253,
+        83,
+        9,
+        0,
+        0
+      ],
+      "special_hits": 42,
+      "draws": 576
+    },
+    "frequency": {
+      "mean_logloss_main": 12.70276783572788,
+      "mean_logloss_special": 2.493833815478473,
+      "mean_logloss_joint": 15.196601651206352,
+      "delta_vs_uniform_main": 0.012320323652996734,
+      "delta_vs_uniform_special": 0.008927165690472805,
+      "delta_vs_uniform_joint": 0.02124748934346954,
+      "main_hits_0_to_5": [
+        245,
+        249,
+        74,
+        8,
+        0,
+        0
+      ],
+      "special_hits": 34,
+      "draws": 576
+    },
+    "qr": {
+      "mean_logloss_main": 12.692844959638592,
+      "mean_logloss_special": 2.493833815478473,
+      "mean_logloss_joint": 15.186678775117064,
+      "delta_vs_uniform_main": 0.0023974475637089654,
+      "delta_vs_uniform_special": 0.008927165690472805,
+      "delta_vs_uniform_joint": 0.01132461325418177,
+      "main_hits_0_to_5": [
+        279,
+        244,
+        44,
+        9,
+        0,
+        0
+      ],
+      "special_hits": 34,
+      "draws": 576
+    }
+  },
+  "next_ticket": {
+    "for_draw_id": 977,
+    "main": [
+      10,
+      20,
+      22,
+      28,
+      34
+    ],
+    "special": 3,
+    "method": "frequency top weights",
+    "note": "Chỉ vé minh họa, không bảo đảm trúng; quay công bằng cho mọi vé cùng xác suất."
+  },
+  "locked_manifest_path": "reports/rng_prospective_lock.json",
+  "source": "/home/tringuyen/xstk/vietlott_535.json",
+  "provenance": {
+    "version": 1,
+    "seed": 535,
+    "data_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8",
+    "last_id": 976
+  }
+}

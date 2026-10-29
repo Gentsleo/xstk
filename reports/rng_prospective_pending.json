@@ -1,0 +1,53 @@
+{
+  "mode": "prospective",
+  "status": "pending",
+  "note": "Chưa có kỳ mới sau khi khóa; chưa có kết quả prospective.",
+  "config": {
+    "version": 1,
+    "seed": 535,
+    "min_train": 200,
+    "validation": 200,
+    "bin_edges_d2": [
+      2.467829346938774,
+      3.5923799183673473,
+      4.9016366326530605,
+      7.055639346938778
+    ],
+    "bin_sizes": [
+      64950,
+      64909,
+      64931,
+      64916,
+      64926
+    ],
+    "bin_prior": 20.0,
+    "frequency_prior_main": 20.0,
+    "prior_special": 5.0,
+    "ticket_rng": "seed-sequence(seed, draw_id, model)"
+  },
+  "locked_prefix_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8",
+  "history_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8",
+  "locked_last_draw_id": 976,
+  "history_draws": 976,
+  "evaluated_draws": 0,
+  "selected_model": "frequency",
+  "selection_rule": "tối thiểu log-loss joint validation giữa frequency và qr; hòa chọn frequency",
+  "evaluated_draw_ids": null,
+  "test": null,
+  "next_ticket": null,
+  "evidence": {
+    "prospective": false,
+    "n_new": 0,
+    "selected_model": "frequency",
+    "log_evalue": null,
+    "prefix_verified": true
+  },
+  "locked_manifest_path": "reports/rng_prospective_lock.json",
+  "source": "/home/tringuyen/xstk/vietlott_535.json",
+  "provenance": {
+    "version": 1,
+    "seed": 535,
+    "data_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8",
+    "last_id": 976
+  }
+}

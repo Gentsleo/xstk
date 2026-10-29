@@ -1,0 +1,169 @@
+{
+  "combo": [
+    6,
+    15,
+    21,
+    30,
+    34
+  ],
+  "special": 6,
+  "fair_main_probability": 3.0804110500505186e-06,
+  "fair_special_probability": 0.08333333333333333,
+  "fair_5plus1_probability": 2.5670092083754323e-07,
+  "feature_names": [
+    "sum",
+    "odd",
+    "high_ge18",
+    "span",
+    "adjacent_pairs"
+  ],
+  "features": [
+    106,
+    2,
+    3,
+    28,
+    0
+  ],
+  "d2": 2.101884632653061,
+  "d2_percentile": 0.15282535301510633,
+  "inside_qr80": true,
+  "qr_coverage": 0.80000123216442,
+  "warning": "QR describes morphology, not individual winning probability; model probabilities are unproven assignments.",
+  "models": {
+    "main": [
+      6,
+      15,
+      21,
+      30,
+      34
+    ],
+    "special": 6,
+    "trained_draws": 976,
+    "qr_bin": 0,
+    "d2": 2.101884632653061,
+    "inside_qr80": true,
+    "models": {
+      "uniform": {
+        "main": 3.0804110500505186e-06,
+        "special": 0.08333333333333333,
+        "joint": 2.567009208375432e-07,
+        "main_ratio_vs_uniform": 0.9999999999999999,
+        "joint_ratio_vs_uniform": 0.9999999999999998
+      },
+      "frequency": {
+        "main": 3.538236627692042e-06,
+        "special": 0.07722007722007722,
+        "joint": 2.7322290561328506e-07,
+        "main_ratio_vs_uniform": 1.148624832920923,
+        "joint_ratio_vs_uniform": 1.0643627795406234
+      },
+      "qr": {
+        "main": 2.937097952302136e-06,
+        "special": 0.07722007722007722,
+        "joint": 2.268029306797016e-07,
+        "main_ratio_vs_uniform": 0.9534759824517469,
+        "joint_ratio_vs_uniform": 0.8835298679089547
+      }
+    },
+    "retrospective_performance": {
+      "status": "retrospective_already_inspected",
+      "config": {
+        "version": 1,
+        "seed": 535,
+        "min_train": 200,
+        "validation": 200,
+        "bin_edges_d2": [
+          2.467829346938774,
+          3.5923799183673473,
+          4.9016366326530605,
+          7.055639346938778
+        ],
+        "bin_sizes": [
+          64950,
+          64909,
+          64931,
+          64916,
+          64926
+        ],
+        "bin_prior": 20.0,
+        "frequency_prior_main": 20.0,
+        "prior_special": 5.0,
+        "ticket_rng": "seed-sequence(seed, draw_id, model)"
+      },
+      "test_draw_ids": [
+        401,
+        976
+      ],
+      "test": {
+        "uniform": {
+          "mean_logloss_main": 12.690447512074883,
+          "mean_logloss_special": 2.4849066497880004,
+          "mean_logloss_joint": 15.175354161862883,
+          "delta_vs_uniform_main": 0.0,
+          "delta_vs_uniform_special": 0.0,
+          "delta_vs_uniform_joint": 0.0,
+          "main_hits_0_to_5": [
+            231,
+            253,
+            83,
+            9,
+            0,
+            0
+          ],
+          "special_hits": 42,
+          "draws": 576
+        },
+        "frequency": {
+          "mean_logloss_main": 12.70276783572788,
+          "mean_logloss_special": 2.493833815478473,
+          "mean_logloss_joint": 15.196601651206352,
+          "delta_vs_uniform_main": 0.012320323652996734,
+          "delta_vs_uniform_special": 0.008927165690472805,
+          "delta_vs_uniform_joint": 0.02124748934346954,
+          "main_hits_0_to_5": [
+            245,
+            249,
+            74,
+            8,
+            0,
+            0
+          ],
+          "special_hits": 34,
+          "draws": 576
+        },
+        "qr": {
+          "mean_logloss_main": 12.692844959638592,
+          "mean_logloss_special": 2.493833815478473,
+          "mean_logloss_joint": 15.186678775117064,
+          "delta_vs_uniform_main": 0.0023974475637089654,
+          "delta_vs_uniform_special": 0.008927165690472805,
+          "delta_vs_uniform_joint": 0.01132461325418177,
+          "main_hits_0_to_5": [
+            279,
+            244,
+            44,
+            9,
+            0,
+            0
+          ],
+          "special_hits": 34,
+          "draws": 576
+        }
+      },
+      "note": "Fixed train=200, validation=200; descriptive historical scores, not prospective evidence."
+    },
+    "note": "Xác suất mô hình được gán sau khi đã xem lịch sử đầu vào; không phải xác suất trúng thực tế nếu quay công bằng."
+  },
+  "provenance": {
+    "version": 1,
+    "python": "3.10.12",
+    "numpy": "2.2.6",
+    "generator": "NumPy PCG64",
+    "seed": null,
+    "warning": "Controlled hypotheses only; not a reconstruction of OKC/SmartPlay RNG.",
+    "n_draws": 976,
+    "first_id": 1,
+    "last_id": 976,
+    "data_sha256": "21c6ee65af59eb0446ad19d62072ee62f5e5e1566709495f8e1e400715e0d6d8"
+  }
+}

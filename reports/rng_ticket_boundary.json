@@ -1,0 +1,32 @@
+{
+  "combo": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "special": 1,
+  "fair_main_probability": 3.0804110500505186e-06,
+  "fair_special_probability": 0.08333333333333333,
+  "fair_5plus1_probability": 2.5670092083754323e-07,
+  "feature_names": [
+    "sum",
+    "odd",
+    "high_ge18",
+    "span",
+    "adjacent_pairs"
+  ],
+  "features": [
+    15,
+    3,
+    0,
+    4,
+    4
+  ],
+  "d2": 44.58993206122449,
+  "d2_percentile": 0.9999938391778999,
+  "inside_qr80": false,
+  "qr_coverage": 0.80000123216442,
+  "warning": "QR describes morphology, not individual winning probability; model probabilities are unproven assignments."
+}

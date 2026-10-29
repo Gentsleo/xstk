@@ -76,7 +76,10 @@ show_help() {
     echo -e "  ${GREEN}watch${NC}        : Chạy daemon theo dõi liên tục trong terminal"
     echo -e "  ${GREEN}logs${NC}         : Xem log theo thời gian thực (tail -f auto_update.log)"
     echo -e "  ${GREEN}qr${NC}           : Đánh giá bộ số QR (vd: ./xstk.sh qr 6 15 21 30 34 6)"
-    echo -e "  ${GREEN}qr --gen N${NC}   : Gợi ý N bộ số chuẩn 5+1 nằm trong Typical Set (./xstk.sh qr --gen 5)"
+    echo -e "  ${GREEN}qr --gen N${NC}   : Sinh đều N bộ trên toàn không gian, QR chỉ mô tả"
+    echo -e "  ${GREEN}backtest${NC}     : Huấn luyện ngưỡng theo thời gian và kiểm tra ngoài mẫu"
+    echo -e "  ${GREEN}predict${NC}      : Huấn luyện dự báo 5+1 và đánh giá ngoài mẫu"
+    echo -e "  ${GREEN}lab${NC}          : Phòng thí nghiệm RNG/QR (reference, audit, power, simulate, forecast, neural, ticket)"
     echo -e "  ${GREEN}gui${NC}          : Mở giao diện Desktop đồ họa PyQt5 (Qt App)"
     echo -e "  ${GREEN}web${NC}          : Mở giao diện Web App trên trình duyệt (Port 8080)"
     echo -e "  ${GREEN}help${NC}         : Hiển thị lại bảng hướng dẫn này"
@@ -123,6 +126,18 @@ case "$1" in
     qr)
         shift
         python3 "$DIR/qr_filter.py" "$@"
+        ;;
+    backtest)
+        shift
+        python3 "$DIR/qr_backtest.py" "$@"
+        ;;
+    predict)
+        shift
+        python3 "$DIR/qr_predict.py" "$@"
+        ;;
+    lab)
+        shift
+        python3 "$DIR/rng_lab.py" "$@"
         ;;
     wheel)
         shift

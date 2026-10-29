@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 """
-Vietlott 5/35: điểm hình thái để chọn bộ số cân đối và dàn bao hai vé.
-Điểm số không phải xác suất trúng; mọi vé hợp lệ có cùng xác suất trong kỳ quay công bằng.
+Vietlott 5/35: thống kê mô tả vé và sinh đều vé trên toàn bộ C(35,5) tổ hợp.
+Điểm hình thái không phải xác suất trúng; mọi vé hợp lệ có cùng xác suất trong kỳ quay công bằng.
 """
 
-import sys
 import math
 import random
 import sqlite3
 import argparse
 import os
 import json
-import statistics
-from itertools import combinations
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "vietlott_535.db")
 JSON_PATH = os.path.join(os.path.dirname(__file__), "vietlott_535.json")
@@ -26,6 +23,24 @@ INV_COV = [
     [-0.000572, -0.007780, 0.013338, 0.032009, 0.081643],
     [-0.001458, 0.010327, 0.034020, 0.081643, 2.448486]
 ]
+
+# Bách phân vị 80% của D² trên toàn bộ C(35,5) tổ hợp, dùng hệ số trên.
+QR80_THRESHOLD = 7.055639346938778
+QR80_SIZE = 259706
+TOTAL_COMBINATIONS = math.comb(35, 5)
+_RNG = random.SystemRandom()
+
+
+def distance_squared(combo):
+    """Khoảng cách chưa làm tròn; combo phải là 5 số hợp lệ đã sắp xếp."""
+    vec = [sum(combo) - MU[0], sum(x % 2 for x in combo) - MU[1],
+           sum(x >= 18 for x in combo) - MU[2], combo[-1] - combo[0] - MU[3],
+           sum(combo[i+1] - combo[i] == 1 for i in range(4)) - MU[4]]
+    return sum(vec[i] * INV_COV[i][j] * vec[j] for i in range(5) for j in range(5))
+
+def sample_uniform_ticket():
+    """Lấy mẫu đều một bộ 5 số chính từ toàn bộ C(35,5) tổ hợp."""
+    return tuple(sorted(_RNG.sample(range(1, 36), 5)))
 
 def chi2_cdf(x, k=5):
     """CDF chi bình phương 5 bậc tự do, dùng như thước đo hình thái xấp xỉ."""
@@ -107,8 +122,7 @@ def evaluate_combination(combo, special=None, context=None):
     consecs = sum(1 for i in range(4) if combo[i+1] - combo[i] == 1)
     
     # 1. Khoảng cách Mahalanobis (D_M^2)
-    vec = [s - MU[0], odds - MU[1], highs - MU[2], span - MU[3], consecs - MU[4]]
-    dm_sq = sum(vec[i] * INV_COV[i][j] * vec[j] for i in range(5) for j in range(5))
+    dm_sq = distance_squared(combo)
     p_val_main = 1.0 - chi2_cdf(dm_sq, 5)
     
     # 2. Shannon Gap Entropy
@@ -193,6 +207,7 @@ def evaluate_combination(combo, special=None, context=None):
         "span": span,
         "consecs": consecs,
         "dm_sq": round(dm_sq, 2),
+        "in_qr80": dm_sq <= QR80_THRESHOLD,
         "p_val_main": round(p_val_main, 4),
         "gap_entropy": round(gap_entropy, 3),
         "entropy_pct": round(entropy_ratio * 100, 1),
@@ -225,6 +240,7 @@ def print_result(res):
     print(f"   • Tỷ lệ Cao / Thấp: {res['highs']} Cao  - {res['lows']} Thấp (Ngưỡng phân cách: 18)")
     print(f"   • Khoảng trải rộng: {res['span']:>2} số  | Số cặp liên tiếp: {res['consecs']}")
     print(f"   • Mahalanobis D_M^2:{res['dm_sq']:>6.2f} (đuôi Chi2(5) xấp xỉ: {res['p_val_main']:.4f})")
+    print(f"   • Vùng QR 80% (chỉ mô tả, không lọc vé): {'Trong vùng' if res['in_qr80'] else 'Ngoài vùng'} (D² ≤ {QR80_THRESHOLD:.6f})")
     print(f"   • Shannon Gap H:    {res['gap_entropy']:>6.3f} ({res['entropy_pct']}% cực đại lý thuyết)")
     
     if sp:
@@ -245,84 +261,37 @@ def print_result(res):
     print(f"• NHẬN ĐỊNH TOÁN HỌC:          {res['recommendation']}")
     print("=" * 72)
 
-def select_optimal_special_ball(exclude_sp=None):
-    """Chọn đều từ lồng 12 bóng; dùng hai số khác nhau để phủ thêm kết quả."""
-    excluded = exclude_sp or set()
-    return random.choice([s for s in range(1, 13) if s not in excluded])
 
 def generate_covering_wheel(v=10):
-    """Chọn bể 10 số trải đều, chia thành hai vé rời để phủ tổ hợp có điều kiện."""
-    latest_draw, current_skips = get_history_context()
-    prev_winning = set([latest_draw[f"num{j}"] for j in range(1, 6)]) if latest_draw else set()
-    
-    print(f"[*] Đang chọn bể 10 số trải đều và chia thành hai vé cân đối...")
+    """Chia 10 số lấy mẫu đều thành hai vé rời; mỗi vé biên đều trên C(35,5).
 
-    best_pool = None
-    best_score = -1e9
-    # Mỗi lần chạy lấy mẫu độc lập; không phụ thuộc kỳ trước.
-
-    for _ in range(40000):
-        cand_list = sorted(random.sample(range(1, 36), 10))
-        # Không cưỡng ép chọn số từ kỳ trước.
-        evens = sum(1 for x in cand_list if x % 2 == 0)
-        lows = sum(1 for x in cand_list if x <= 17)
-        if evens not in (v//2 - 1, v//2, v//2 + 1) or lows not in (v//2 - 1, v//2, v//2 + 1):
-            continue
-            
-        # Shannon Gap Entropy của bể
-        gaps = [cand_list[0]] + [cand_list[i+1] - cand_list[i] for i in range(9)] + [36 - cand_list[-1]]
-        p_gaps = [g / 36.0 for g in gaps]
-        entropy = -sum(p * math.log(p) for p in p_gaps)
-        
-        score = entropy
-        if score > best_score:
-            best_score = score
-            best_pool = cand_list
-
-    print(f"\n[✓] BỂ 10 SỐ TRẢI ĐỀU NHẤT TRONG MẪU ĐÃ THỬ:")
-    print(f"    Bể số V = [ {' '.join(f'{x:02d}' for x in best_pool)} ]")
-    print(f"    • Entropy khoảng cách: {best_score:.3f} | Tỷ lệ Chẵn/Lẻ: {sum(1 for x in best_pool if x%2==0)}C/{sum(1 for x in best_pool if x%2!=0)}L")
-    print(f"    • Số lặp kỳ trước: {sorted(list(prev_winning.intersection(set(best_pool))))}")
-    print(f"    • Số dải cao (>=32): {[x for x in best_pool if x >= 32]} (Xuất hiện tự nhiên)")
-    print(f"    • Nhịp vắng TB: {statistics.mean([current_skips.get(x, 6) for x in best_pool]):.1f} kỳ/số")
-
-    print(f"\n[*] Đang áp dụng Phương án #3: Ma trận bọc tối thiểu C({v}, 5, 3, 5)...")
-    
-    # Phân hoạch thành 2 vé rời rạc kích thước 5.
-    best_pair = None
-    max_sqs = -1
-
-    for t1 in combinations(best_pool, 5):
-        t2 = tuple(x for x in best_pool if x not in t1)
-        if t1 > t2:
-            continue
-            
-        r1 = evaluate_combination(list(t1), context=(latest_draw, current_skips))
-        r2 = evaluate_combination(list(t2), context=(latest_draw, current_skips))
-        
-        total_sqs = r1["sqs"] + r2["sqs"]
-        if total_sqs > max_sqs:
-            max_sqs = total_sqs
-            best_pair = (t1, t2, r1, r2)
-
-    t1, t2, r1, r2 = best_pair
-    sp1 = select_optimal_special_ball()
-    sp2 = select_optimal_special_ball(exclude_sp={sp1})
-    r1 = evaluate_combination(list(t1), sp1, context=(latest_draw, current_skips))
-    r2 = evaluate_combination(list(t2), sp2, context=(latest_draw, current_skips))
+    Hai vé phụ thuộc nhau vì không chung số chính; số đặc biệt độc lập cho từng vé.
+    """
+    if v != 10:
+        raise ValueError("Chỉ hỗ trợ bể 10 số")
+    context = get_history_context()
+    numbers = _RNG.sample(range(1, 36), 10)
+    t1, t2 = tuple(sorted(numbers[:5])), tuple(sorted(numbers[5:]))
+    best_pool = sorted(numbers)
+    sp1, sp2 = _RNG.randrange(1, 13), _RNG.randrange(1, 13)
+    r1 = evaluate_combination(t1, sp1, context=context)
+    r2 = evaluate_combination(t2, sp2, context=context)
+    print(f"[*] Bể 10 số của hai vé rời: {best_pool}")
 
     print("\n" + "=" * 72)
-    print("  HAI VÉ RỜI TRÊN BỂ 10 SỐ — BAO PHỦ CÓ ĐIỀU KIỆN")
+    print("  HAI VÉ RỜI TRÊN BỂ 10 SỐ — MỖI VÉ ĐỀU, HAI VÉ PHỤ THUỘC")
     print("=" * 72)
     print(f"🎫 VÉ SỐ 1: [ {' '.join(f'{x:02d}' for x in t1)} | ĐB: {sp1:02d} ]")
     print(f"   • SQS v2.0: {r1['sqs']:>5.1f}/100 ({r1['grade']})")
     print(f"   • Tổng số : {r1['sum']:>3} (Z={r1['z_sum']:>+.2f}) | {r1['odds']}L-{r1['evens']}C | Entropy: {r1['gap_entropy']:.2f}")
     print(f"   • Nhịp vắng: {r1['skip_info']['status']} | Lặp kỳ trước: {r1['markov_info']['repeats']} số")
+    print(f"   • QR 80% (chỉ mô tả): {'Trong vùng' if r1['in_qr80'] else 'Ngoài vùng'}")
 
     print(f"\n🎫 VÉ SỐ 2: [ {' '.join(f'{x:02d}' for x in t2)} | ĐB: {sp2:02d} ]")
     print(f"   • SQS v2.0: {r2['sqs']:>5.1f}/100 ({r2['grade']})")
     print(f"   • Tổng số : {r2['sum']:>3} (Z={r2['z_sum']:>+.2f}) | {r2['odds']}L-{r2['evens']}C | Entropy: {r2['gap_entropy']:.2f}")
     print(f"   • Nhịp vắng: {r2['skip_info']['status']} | Lặp kỳ trước: {r2['markov_info']['repeats']} số")
+    print(f"   • QR 80% (chỉ mô tả): {'Trong vùng' if r2['in_qr80'] else 'Ngoài vùng'}")
 
     print("-" * 72)
     print(f"   Nếu cả 5 số kết quả thuộc bể 10 số, ít nhất một vé khớp >=3 số.")
@@ -331,44 +300,52 @@ def generate_covering_wheel(v=10):
     print("=" * 72)
     return best_pool, [t1, t2]
 
-def suggest_balanced(count=5, samples=4000):
-    """Xếp hạng hình thái trong một mẫu ngẫu nhiên; không dự đoán kỳ quay."""
+def suggest_uniform(count=5):
+    """Lấy mẫu đều các bộ 5 số không lặp trên toàn bộ C(35,5); không xếp hạng."""
+    if not 1 <= count <= TOTAL_COMBINATIONS:
+        raise ValueError(f"Số lượng phải nằm trong khoảng 1–{TOTAL_COMBINATIONS}")
     context = get_history_context()
-    candidates = {}
-    for _ in range(max(samples, count)):
-        combo = tuple(sorted(random.sample(range(1, 36), 5)))
-        if combo not in candidates:
-            candidates[combo] = evaluate_combination(combo, context=context)
-    ranked = sorted(candidates.values(), key=lambda result: result["sqs"], reverse=True)
-    return [evaluate_combination(result["combo"], random.randint(1, 12), context=context)
-            for result in ranked[:count]]
+    seen = set()
+    results = []
+    while len(results) < count:
+        combo = sample_uniform_ticket()
+        if combo in seen:
+            continue
+        seen.add(combo)
+        results.append(evaluate_combination(combo, _RNG.randrange(1, 13), context=context))
+    return results
 
 def generate_candidates(count=5):
-    """Sinh các bộ số cân đối về hình thái, không thay đổi xác suất từng vé."""
-    print(f"[*] Đang tạo {count} bộ số có hình thái cân đối:\n")
-    found = suggest_balanced(count)
+    """Sinh đều các vé không trùng số chính trên toàn bộ C(35,5) tổ hợp."""
+    found = suggest_uniform(count)
+    print(f"[*] Đã lấy mẫu {count} bộ số trên toàn bộ {TOTAL_COMBINATIONS} tổ hợp (QR chỉ mô tả):\n")
             
     for idx, r in enumerate(found, 1):
         s_str = ' '.join(f'{x:02d}' for x in r['combo'])
         sp = r['special_info']['special']
         m = r['markov_info']
         s = r['skip_info']
-        print(f"  Bộ {idx:02d}: [{s_str} | ĐB: {sp:02d}]  Tổng: {r['sum']:>3} | Điểm cân đối: {r['sqs_v2']:>4.1f}/100 | Lặp: {m['repeats']} | Vắng: {s['skip_sum']}")
+        print(f"  Bộ {idx:02d}: [{s_str} | ĐB: {sp:02d}]  QR 80%: {'Trong' if r['in_qr80'] else 'Ngoài'} (chỉ mô tả) | Tổng: {r['sum']:>3} | SQS: {r['sqs_v2']:>4.1f}/100 | Lặp: {m['repeats']} | Vắng: {s['skip_sum']}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Đánh giá hình thái vé Vietlott 5/35 (không dự báo)")
     parser.add_argument("numbers", nargs="*", type=int, help="5 số chính, kèm số đặc biệt thứ 6 nếu có (ví dụ: 6 15 21 30 34 6)")
     parser.add_argument("-s", "--special", type=int, default=None, help="Số đặc biệt (1-12)")
-    parser.add_argument("--gen", type=int, default=0, help="Sinh N bộ số cân đối hình thái")
-    parser.add_argument("--wheel", type=int, default=0, help="Chia bể 10 số thành hai vé")
-    
+    parser.add_argument("--gen", type=int, default=None, help=f"Sinh N vé đều trên toàn bộ {TOTAL_COMBINATIONS} tổ hợp (1–{TOTAL_COMBINATIONS})")
+    parser.add_argument("--wheel", type=int, default=None, help="Chia bể 10 số lấy mẫu đều thành hai vé rời")
+
     args = parser.parse_args()
-    
-    if args.wheel > 0 or "--wheel" in sys.argv:
-        if args.wheel not in (0, 10):
-            parser.error("--wheel chỉ hỗ trợ bể 10 số cho hai vé 5 số")
-        generate_covering_wheel(10)
-    elif args.gen > 0:
+
+    if args.gen is not None and not 1 <= args.gen <= TOTAL_COMBINATIONS:
+        parser.error(f"--gen phải nằm trong khoảng 1–{TOTAL_COMBINATIONS}")
+    if args.wheel is not None and args.wheel != 10:
+        parser.error("--wheel chỉ hỗ trợ bể 10 số cho hai vé 5 số")
+    if args.gen is not None and args.wheel is not None:
+        parser.error("Chọn --gen hoặc --wheel, không dùng cả hai")
+
+    if args.wheel is not None:
+        generate_covering_wheel(args.wheel)
+    elif args.gen is not None:
         generate_candidates(args.gen)
     elif len(args.numbers) == 6:
         main_nums = args.numbers[:5]
