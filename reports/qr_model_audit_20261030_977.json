@@ -1,0 +1,148 @@
+{
+  "audit": "frozen empirical production main gate; no held-out tuning",
+  "model_reference_commit": "f597fffb6ec5a3ab19134185815fd1e4eddc12ea",
+  "source": "/home/tringuyen/xstk/vietlott_535.json",
+  "source_sha256": "77998e8a7464a025cc55a7028c43f7723325d11c85a7a68020b20b58dcbc57ce",
+  "coefficients": {
+    "feature_order": [
+      "sum",
+      "odds",
+      "highs_ge_18",
+      "span",
+      "consecutive_pairs"
+    ],
+    "empirical_mu": [
+      91.1069,
+      2.5681,
+      2.6237,
+      23.8512,
+      0.5755
+    ],
+    "empirical_inv_cov": [
+      [
+        0.009367,
+        -0.004928,
+        -0.164895,
+        -0.000941,
+        -0.008335
+      ],
+      [
+        -0.004928,
+        0.896688,
+        0.078079,
+        -0.001084,
+        -0.001216
+      ],
+      [
+        -0.164895,
+        0.078079,
+        3.775486,
+        0.027999,
+        0.141572
+      ],
+      [
+        -0.000941,
+        -0.001084,
+        0.027999,
+        0.030715,
+        0.072989
+      ],
+      [
+        -0.008335,
+        -0.001216,
+        0.141572,
+        0.072989,
+        2.3008
+      ]
+    ],
+    "frozen_calibration_last_draw_id": 954,
+    "sqs_min_inclusive": 80.0,
+    "gap_entropy_min_inclusive": 1.5,
+    "sqs_formula": "round(100*(1-chi2CDF5(empirical_dm_sq))*(0.8+0.2*clamp((H-1)/(ln(6)-1),0,1)),1)",
+    "gap_entropy_uses_unrounded_value": true
+  },
+  "regions": {
+    "total_main_combinations": 324632,
+    "model_accepted_main_combinations": 44232,
+    "model_fair_inclusion_probability": 0.13625274156583456,
+    "fair_qr80_main_combinations": 259706,
+    "fair_qr80_inclusion_probability": 0.80000123216442,
+    "model_and_fair_qr80_main_combinations": 44232,
+    "fair_qr80_threshold": 7.055639346938778,
+    "fair_qr80_role": "separate fixed theoretical baseline, not the production gate"
+  },
+  "draws": {
+    "historical": {
+      "label": "all observed draws; includes calibration",
+      "count": 977,
+      "model_hits": 121,
+      "model_rate": 0.12384851586489252,
+      "model_fair_expected_hits": 133.11892850982036,
+      "fair_qr_hits": 760,
+      "fair_qr_rate": 0.7778915046059366,
+      "fair_qr_expected_hits": 781.6012038246383,
+      "model_and_fair_qr_hits": 121,
+      "model_wilson_95": [
+        0.10465412218389342,
+        0.14598929894175866
+      ],
+      "fair_qr_wilson_95": [
+        0.7507673659243496,
+        0.802838922958332
+      ],
+      "model_fair_sd_hits": 10.722924486633811,
+      "fair_qr_fair_sd_hits": 12.502770801055808
+    },
+    "calibration_retrospective": {
+      "label": "calibration/retrospective; NOT unseen holdout",
+      "count": 954,
+      "model_hits": 116,
+      "model_rate": 0.12159329140461216,
+      "model_fair_expected_hits": 129.98511545380617,
+      "fair_qr_hits": 742,
+      "fair_qr_rate": 0.7777777777777778,
+      "fair_qr_expected_hits": 763.2011754848567,
+      "model_and_fair_qr_hits": 116,
+      "model_wilson_95": [
+        0.10235850651480742,
+        0.1438633046720512
+      ],
+      "fair_qr_wilson_95": [
+        0.7503118829263822,
+        0.803015596396284
+      ],
+      "model_fair_sd_hits": 10.59595616782523,
+      "fair_qr_fair_sd_hits": 12.354727625797244
+    },
+    "post_954": {
+      "label": "post-calibration draw_id > 954; retrospective if already examined",
+      "count": 23,
+      "model_hits": 5,
+      "model_rate": 0.21739130434782608,
+      "model_fair_expected_hits": 3.133813056014195,
+      "fair_qr_hits": 18,
+      "fair_qr_rate": 0.782608695652174,
+      "fair_qr_expected_hits": 18.40002833978166,
+      "model_and_fair_qr_hits": 5,
+      "model_wilson_95": [
+        0.09663978026586204,
+        0.4190348301626401
+      ],
+      "fair_qr_wilson_95": [
+        0.5809651698373599,
+        0.9033602197341379
+      ],
+      "model_fair_sd_hits": 1.64524236378032,
+      "fair_qr_fair_sd_hits": 1.9183281773711414
+    }
+  },
+  "interpretation": {
+    "region_coverage": "fraction of fair main combinations inside a fixed region",
+    "historical_inclusion": "observed main draws inside each region, not ticket odds",
+    "ticket_fair_main_jackpot_probability": 3.0804110500505186e-06,
+    "ticket_fair_5_plus_special_jackpot_probability": 2.5670092083754323e-07,
+    "special": "independently uniform in 1..12; not scored or gated",
+    "uncertainty": "unadjusted Wilson 95% for observed model and QR rates under independent draws; calibration and all-history are retrospective, and examined post-954 draws are not an untouched prospective holdout. Post-954 intervals exist only if such draws exist",
+    "conclusion": "conditioning on model shape does not improve any fixed ticket's fair-draw jackpot probability or prove predictive advantage"
+  }
+}

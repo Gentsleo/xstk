@@ -1,6 +1,6 @@
 # 🎯 XSTK - Phân tích Vietlott Lotto 5/35
 
-Ứng dụng xem lịch sử và sinh bộ số đều trên toàn bộ 324.632 tổ hợp. QR/SQS chỉ mô tả hình thái sau khi sinh, không lọc hay ưu tiên vé và không tăng xác suất trúng.
+Ứng dụng xem lịch sử và sinh vé 5+1 bằng **cổng hình thái thực nghiệm** trên 5 số chính (hiệu chuẩn từ kỳ 1–954). Bộ sinh này không lấy mẫu đều trên toàn bộ 324.632 tổ hợp; số đặc biệt vẫn đều và độc lập. Không có bằng chứng chọn vé qua cổng làm tăng xác suất trúng của một vé khi quay công bằng.
 
 Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh My Pi (`math-mcp`, `mcp-mathematics`, `wolframalpha`).
 
@@ -44,27 +44,41 @@ Tích hợp trực tiếp với các Model Context Protocol (**MCP**) trong Oh M
 ./xstk.sh qr 06 15 21 30 34 06
 ```
 
-### 4. Sinh N bộ số đều trên toàn không gian (không dự báo)
+### 4. Sinh bộ số theo mô hình đã khóa (không dự báo)
 ```bash
-./xstk.sh qr --gen 5
+./xstk.sh qr --gen 5     # 1–20 vé, 5 số chính không lặp bộ
 ```
-Bộ sinh dùng nguồn ngẫu nhiên hệ điều hành (`SystemRandom`) trên Python và
-`crypto.getRandomValues` trên web. Ánh xạ số nguyên web dùng rejection sampling
-trước phép modulo, tránh sai lệch do chia dư; không dùng `Math.random` dự phòng.
-Fisher–Yates/lấy mẫu không hoàn lại bảo đảm mỗi bộ 5 số có cùng xác suất,
-kể cả bộ ngoài vùng QR. Số đặc biệt lấy đều, độc lập trong 1–12, có thể trùng số chính.
-Một lần sinh nhiều vé không lặp bộ chính; không xếp hạng lại theo SQS hoặc lịch sử.
+Python dùng `SystemRandom`, web dùng `crypto.getRandomValues` với rejection
+mapping (không dùng `Math.random` dự phòng) để đề xuất bộ chính đồng đều **trước
+khi lọc**. Chỉ nhận bộ đạt SQS ≥ 80, entropy khoảng trống thực H ≥ 1,50;
+không trả bộ ngoài cổng nếu hết lượt tìm. Số đặc biệt chọn đều 1–12, độc lập
+**sau khi** nhận bộ chính; được phép trùng số chính hoặc số đặc biệt vé khác.
+Không áp trọng số cho số cũ, số vắng, số cao hay số đặc biệt. Đối chứng
+nghiên cứu đều trên toàn không gian, **không lọc**, dùng
+`./xstk.sh qr --uniform N` (hàm Python `suggest_uniform`).
 
-`./xstk.sh wheel` sinh hai vé chính rời nhau từ một mẫu đều 10 số. Mỗi vé
-riêng lẻ vẫn đều trên toàn không gian; hai vé phụ thuộc nhau do điều kiện rời,
-không được coi là hai mẫu độc lập. QR chỉ được tính sau khi chọn vé.
+`./xstk.sh wheel` tìm hai bộ chính đạt cổng và rời nhau (bể 10 số); đây không
+phải lấy mẫu đều của mọi bộ chính hoặc hai vé độc lập. Số đặc biệt của từng vé
+vẫn độc lập đồng đều, có thể trùng nhau/trùng số chính.
 
-### 5. Huấn luyện và kiểm chứng theo thời gian
+### 5. Đối chiếu cổng sản xuất và chuẩn QR lý thuyết
 ```bash
 ./xstk.sh backtest
+./xstk.sh backtest --output audit_model.json
 ```
-Ngưỡng thực nghiệm được cập nhật chỉ từ các kỳ trước rồi kiểm tra kỳ tiếp theo.
-Kết quả này là đánh giá ngoài mẫu, không tự thay thế ngưỡng lý thuyết.
+Lệnh vẫn thực hiện kiểm tra QR lý thuyết walk-forward: chỉ ngưỡng phân vị
+được cập nhật từ các kỳ **trước** khi chấm kỳ tiếp theo. Ngoài ra lệnh duyệt
+chính xác 324.632 bộ để tính thể tích vùng cổng sản xuất, vùng QR80 lý thuyết
+và giao hai vùng; so sánh riêng tỷ lệ thuộc vùng trong lịch sử và kỳ vọng nếu
+quay đều. Cổng thực nghiệm đóng băng trên kỳ 1–954; mọi số liệu với
+`draw_id ≤ 954` là **hiệu chuẩn/hồi cứu**. Chỉ `draw_id > 954` nằm ngoài
+giai đoạn tính hệ số, nhưng các kỳ >954 **đã xem** trong dữ liệu hiện tại
+vẫn là phân tích hồi cứu, **không** phải holdout chưa xem hay đánh giá
+tiến cứu. Không điều chỉnh ngưỡng theo các kỳ đó. `--output` ghi JSON gồm
+hệ số/nguồn commit, SHA-256 dữ liệu, ngưỡng và cutoff, thể tích vùng,
+tỷ lệ nhóm lịch sử/hiệu chuẩn/sau 954 và khoảng Wilson 95% khi có dữ liệu;
+từ chối ghi đè. Độ phủ vùng, tỷ lệ thuộc vùng lịch sử và cơ hội thắng của
+**một vé cụ thể** là ba đại lượng khác nhau.
 
 Đánh giá mô hình dự báo riêng cho một vé 5+1:
 ```bash
@@ -232,32 +246,43 @@ lý do để loại bỏ hay ưu tiên vé. Tần suất quá khứ không cho b
 
 ### Vùng dung sai lấy cảm hứng từ QR
 
-Vùng $A_{80}=\{c:D_M^2(c)\le 7.055639346938778\}$ chứa
-259.706 trong 324.632 tổ hợp, được hiệu chuẩn bằng duyệt toàn bộ không gian
-với ma trận trong `qr_filter.py`. Bộ sinh vé không điều kiện hóa theo vùng này:
-lọc QR80 sẽ làm khoảng 20% tổ hợp không bao giờ được sinh. Không ưu tiên SQS,
-entropy, số gần đây, số vắng hay tránh chia giải; QR chỉ để đánh giá sau khi sinh.
-Độ phủ vùng không phải xác suất trúng một vé; vùng vẫn bỏ ngoài khoảng 20%
-không gian. QR thật có mã sửa sai; đây chỉ là phép tương tự về dung sai,
-không khôi phục được kết quả xổ số.
+Vùng tham chiếu **lý thuyết** $A_{80}=\{c:D_{\mathrm{fair}}^2(c)\le
+7.055639346938778\}$ chứa 259.706/324.632 bộ chính, tính bằng `MU`,
+`INV_COV` trên toàn bộ các tổ hợp đều. `in_qr80` chỉ báo cáo chuẩn này,
+**không phải điều kiện nhận vé**. Cổng sản xuất dùng các hệ số **thực nghiệm**
+khác và hai ngưỡng SQS/H; không đồng nhất tỷ lệ phủ QR80 với tỷ lệ nhận vé.
+QR thật có mã sửa sai; hình ảnh dung sai ở đây không phải phương pháp dự
+đoán kết quả xổ số.
 
-### SQS: điểm mô tả, không phải xác suất
+### SQS và cổng thực nghiệm: chọn hình thái, không đo xác suất trúng
 
-SQS (0–100) chỉ đánh giá tính cân đối hình thức của **5 số chính**. Vector
-đặc trưng $\mathbf{x}=[\text{Sum},\text{Odds},\text{Highs},\text{Span},\text{Consecs}]^T$
-và khoảng cách Mahalanobis
-$D_M^2=(\mathbf{x}-\boldsymbol{\mu})^T\boldsymbol{\Sigma}^{-1}
-(\mathbf{x}-\boldsymbol{\mu})$ giúp mô tả độ lệch của các đặc trưng có tương quan.
-Giá trị $1-F_{\chi^2_5}(D_M^2)$ chỉ là **tham chiếu chi-square xấp xỉ**:
-các đặc trưng rời rạc không bảo đảm $D_M^2$ phân phối chính xác theo $\chi^2_5$.
-Đây không phải xác suất một bộ số được quay ra, cũng không phải lợi thế của SQS cao.
+Năm đặc trưng $\mathbf{x}=[\text{Sum},\text{Odds},\text{Highs}_{\ge18},
+\text{Span},\text{Consecs}]^T$. `EMPIRICAL_MU =
+[91.1069, 2.5681, 2.6237, 23.8512, 0.5755]` và `EMPIRICAL_INV_COV`
+trong `qr_filter.py` là hệ số công bố làm tròn từ **kỳ 1–954**, theo bản
+`f597fffb6ec5a3ab19134185815fd1e4eddc12ea`; đã khóa, không fit lại
+từ các kỳ mới. $D_{\mathrm{emp}}^2=(\mathbf{x}-\boldsymbol{\mu}_{emp})^T
+\Sigma^{-1}_{emp}(\mathbf{x}-\boldsymbol{\mu}_{emp})$. Với sáu khoảng trống
+$g=(n_1,n_2-n_1,\ldots,n_5-n_4,36-n_5)$, $n_1<\cdots<n_5$:
+$$\sum_{i=1}^{6}g_i=36,\quad H=-\sum_{i=1}^{6}(g_i/36)\ln(g_i/36),\quad
+\mathrm{SQS}=\operatorname{round}\!\left(
+100[1-F_{\chi^2_5}(D_{\mathrm{emp}}^2)]
+\left[0.8+0.2\operatorname{clamp}\!\left(
+\frac{H-1}{\ln6-1},0,1\right)\right],1\right).$$
+Chỉ chọn nếu **SQS ≥ 80 và H thực ≥ 1,50**; H hiển thị được làm tròn
+nhưng không dùng giá trị hiển thị để xét cổng. Số đặc biệt 1–12 không tham
+gia SQS; thống kê kỳ trước chỉ để tham khảo. Đuôi chi-square là thước tham
+chiếu hình thái **xấp xỉ**, không phải xác suất một bộ được quay. Dù vé
+được lọc, mỗi vé cụ thể vẫn có xác suất trúng 5+1 bằng $1/3.895.584$ dưới
+giả thiết quay công bằng, độc lập; vùng lọc không chứng minh lợi thế dự báo.
 
-Độ rải đều có thể mô tả bằng entropy của sáu khoảng trống dương
-$g=(n_1,n_2-n_1,\ldots,n_5-n_4,36-n_5)$, với $n_1<\cdots<n_5$:
-$$\sum_{i=1}^{6}g_i=36,\qquad \overline g=6,\qquad
-H(g)=-\sum_{i=1}^{6}\frac{g_i}{36}\ln\frac{g_i}{36}.$$
-Chọn vé cân đối chỉ phục vụ sở thích trình bày; bộ số dồn cụm cũng có
-xác suất trúng đúng 5 số chính bằng một bộ số rải đều.
+MCP (`math-mcp`, `mcp-mathematics`; WolframAlpha chỉ khi có cấu hình)
+hỗ trợ **tính toán/đối chiếu nghiên cứu**, không được gọi khi chọn vé hay
+tính SQS lúc chạy: mã dùng các hằng số đã đóng băng trong `qr_filter.py`.
+`reports/qr_model_verification.json` lưu kiểm tra độc lập trung bình,
+ma trận và giới hạn công cụ; không coi MCP là dịch vụ dự báo hoặc nói rằng
+WolframAlpha đã xác minh khi thiếu khóa API. `rng_lab.py` và neural/Colab ở
+phần dưới là các nhánh nghiên cứu riêng, không phải engine chọn vé này.
 
 ### Hai vé có 5 số chính không giao nhau
 

@@ -1,5 +1,9 @@
 import json
 import os
+from qr_filter import (
+    CALIBRATION_LAST_DRAW, EMPIRICAL_INV_COV, EMPIRICAL_MU,
+    MAX_SUGGESTIONS, MIN_ENTROPY, MIN_SQS,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -16,7 +20,7 @@ html_content = f"""<!DOCTYPE html>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>XSTK - Vietlott Lotto 5/35 | Vé ngẫu nhiên đều &amp; 2 vé rời nhau</title>
+    <title>XSTK - Vietlott Lotto 5/35 | Gợi ý vé theo mô hình &amp; 2 vé rời nhau</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -203,7 +207,7 @@ html_content = f"""<!DOCTYPE html>
                 🎯 XSTK - Vietlott Lotto 5/35 <span class="text-xs px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-mono">v2.4</span>
             </h1>
             <p class="text-xs md:text-sm text-gray-400 mt-1">
-                Tạo vé ngẫu nhiên đều &bull; QR 80% và SQS chỉ mô tả &bull; 2 vé chính rời nhau
+                Gợi ý vé theo mô hình thực nghiệm kỳ 1–{CALIBRATION_LAST_DRAW} &bull; 2 vé chính rời nhau &bull; không tăng xác suất trúng
             </p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2.5 w-full md:w-auto">
@@ -228,10 +232,10 @@ html_content = f"""<!DOCTYPE html>
             🔍 Đánh Giá Cấu Trúc Bộ Số
         </button>
         <button onclick="switchTab('tab-wheel')" id="btn-wheel" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-            🎯 Hai Vé Rời Nhau Từ Bể 10 Số
+            🎯 Hai Vé Mô Hình Rời Nhau
         </button>
         <button onclick="switchTab('tab-gen')" id="btn-gen" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
-            ⚡ Tạo Vé Ngẫu Nhiên Đều
+            ⚡ Gợi Ý Vé Theo Mô Hình
         </button>
         <button onclick="switchTab('tab-history')" id="btn-history" class="tab-btn whitespace-nowrap px-4 py-3 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5">
             📊 <span id="tabHistoryTitle">Lịch Sử ({total_draws} Kỳ)</span>
@@ -247,7 +251,7 @@ html_content = f"""<!DOCTYPE html>
     <!-- TAB 1: EVALUATE -->
     <div id="tab-eval" class="tab-content space-y-6">
         <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl">
-            <h2 class="text-base md:text-lg font-bold text-brand-primary mb-3">Chấm điểm cấu trúc SQS cho 5 số chính (số đặc biệt không ảnh hưởng điểm)</h2>
+            <h2 class="text-base md:text-lg font-bold text-brand-primary mb-3">Chấm điểm SQS thực nghiệm cho 5 số chính (số đặc biệt không ảnh hưởng điểm)</h2>
             <div class="flex flex-wrap items-center gap-2 md:gap-3">
                 <input id="num1" type="number" min="1" max="35" placeholder="01" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
                 <input id="num2" type="number" min="1" max="35" placeholder="02" class="w-12 md:w-16 h-11 md:h-12 text-center text-lg md:text-xl font-bold bg-brand-dark border border-brand-border rounded-xl focus:border-brand-primary focus:outline-none">
@@ -273,7 +277,7 @@ html_content = f"""<!DOCTYPE html>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-border pb-6 gap-4">
                 <div class="flex items-center gap-4 md:gap-6">
                     <div class="text-center">
-                        <span class="text-[11px] text-gray-400 block font-semibold">SQS: ĐIỂM CẤU TRÚC, KHÔNG PHẢI XÁC SUẤT TRÚNG</span>
+                        <span class="text-[11px] text-gray-400 block font-semibold">SQS: ĐIỂM MÔ HÌNH, KHÔNG PHẢI XÁC SUẤT TRÚNG</span>
                         <span id="resSQS" class="text-4xl md:text-5xl font-extrabold text-brand-secondary">-- / 100</span>
                     </div>
                     <div>
@@ -308,7 +312,7 @@ html_content = f"""<!DOCTYPE html>
                 <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
                     <span class="text-[11px] text-gray-400 block">Tổng Điểm 5 Số</span>
                     <span id="resSum" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
-                    <span class="text-[10px] text-gray-500">Lý thuyết: 90 ± 21</span>
+                    <span class="text-[10px] text-gray-500">Trung bình lý thuyết: 90; mô hình dùng dữ liệu kỳ 1–{CALIBRATION_LAST_DRAW}</span>
                 </div>
                 <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
                     <span class="text-[11px] text-gray-400 block">Tỷ Lệ Chẵn / Lẻ</span>
@@ -318,7 +322,7 @@ html_content = f"""<!DOCTYPE html>
                 <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
                     <span class="text-[11px] text-gray-400 block">Mahalanobis (D²_M)</span>
                     <span id="resDM" class="text-lg md:text-xl font-bold text-gray-200 mt-1 block">--</span>
-                    <span class="text-[10px] text-gray-500">Đuôi tham chiếu χ²₅; không phải xác suất trúng</span>
+                    <span class="text-[10px] text-gray-500">Khoảng cách thực nghiệm; đuôi χ²₅ chỉ là tham chiếu</span>
                 </div>
                 <div class="bg-brand-dark p-3.5 rounded-xl border border-brand-border">
                     <span class="text-[11px] text-gray-400 block">Gap Entropy (H)</span>
@@ -335,14 +339,14 @@ html_content = f"""<!DOCTYPE html>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 class="text-lg md:text-xl font-extrabold text-brand-primary flex items-center gap-2">
-                        🎯 Lấy Đều Bể 10 Số, Chia 2 Vé Chính Rời Nhau
+                        🎯 Chọn Hai Vé Chính Rời Nhau Theo Mô Hình
                     </h2>
                     <p class="text-xs md:text-sm text-gray-400 mt-1">
-                        Lấy đều 10 số chính trong 1–35 rồi chia thành hai vé rời nhau: mỗi vé riêng lẻ phân bố đều trên 324632 bộ 5 số, nhưng hai vé phụ thuộc nhau vì không trùng số chính. Số đặc biệt được lấy độc lập trong 1–12; QR 80%, entropy và SQS chỉ mô tả.
+                        Lấy mẫu bộ chính ngẫu nhiên, chỉ nhận bộ đạt SQS ≥ {MIN_SQS:g} và H ≥ {MIN_ENTROPY:.2f} theo mô hình hiệu chuẩn kỳ 1–{CALIBRATION_LAST_DRAW}, rồi ghép hai bộ không trùng số chính. Số đặc biệt lấy đều, độc lập trong 1–12 sau khi chọn bộ chính; mô hình không làm tăng xác suất trúng của từng vé.
                     </p>
                 </div>
                 <button onclick="handleGenerateWheel()" class="px-5 py-3 bg-brand-primary text-gray-900 font-extrabold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm flex items-center gap-2">
-                    🎲 Tạo Đều 2 Vé Rời Nhau
+                    🎲 Gợi Ý 2 Vé Rời Nhau
                 </button>
             </div>
 
@@ -387,7 +391,7 @@ html_content = f"""<!DOCTYPE html>
                         <div class="flex justify-between"><span>Chẵn / Lẻ:</span><span id="t1Parity" class="text-gray-300">--</span></div>
                         <div class="flex justify-between"><span>Tổng kỳ chưa xuất hiện:</span><span id="t1SkipSum" class="text-brand-secondary">--</span></div>
                         <div class="flex justify-between"><span>Trùng kỳ trước:</span><span id="t1Repeat" class="text-gray-300">--</span></div>
-                        <div class="flex justify-between"><span>Miền QR 80%:</span><span id="t1QR" class="text-gray-300">--</span></div>
+                        <div class="flex justify-between"><span>Bộ lọc mô hình:</span><span id="t1QR" class="text-gray-300">--</span></div>
                     </div>
                 </div>
 
@@ -403,7 +407,7 @@ html_content = f"""<!DOCTYPE html>
                         <div class="flex justify-between"><span>Chẵn / Lẻ:</span><span id="t2Parity" class="text-gray-300">--</span></div>
                         <div class="flex justify-between"><span>Tổng kỳ chưa xuất hiện:</span><span id="t2SkipSum" class="text-brand-secondary">--</span></div>
                         <div class="flex justify-between"><span>Trùng kỳ trước:</span><span id="t2Repeat" class="text-gray-300">--</span></div>
-                        <div class="flex justify-between"><span>Miền QR 80%:</span><span id="t2QR" class="text-gray-300">--</span></div>
+                        <div class="flex justify-between"><span>Bộ lọc mô hình:</span><span id="t2QR" class="text-gray-300">--</span></div>
                     </div>
                 </div>
             </div>
@@ -422,12 +426,12 @@ html_content = f"""<!DOCTYPE html>
         <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <label class="font-bold text-xs md:text-sm text-gray-300">Số lượng:</label>
-                <input id="genCount" type="number" min="1" max="20" value="5" class="w-16 p-2 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
+                <input id="genCount" type="number" min="1" max="{MAX_SUGGESTIONS}" value="5" class="w-16 p-2 text-center font-bold bg-brand-dark border border-brand-border rounded-lg text-sm">
                 <button onclick="handleGenerate()" class="px-5 py-2.5 bg-brand-primary text-gray-900 font-bold rounded-xl hover:bg-blue-300 active:scale-95 transition shadow-lg text-xs md:text-sm">
-                    ⚡ Tạo Vé Ngẫu Nhiên Đều
+                    ⚡ Gợi Ý Vé Theo Mô Hình
                 </button>
             </div>
-            <span class="text-xs text-gray-400 italic">Lấy mẫu đều từ toàn bộ 324632 bộ 5 số chính trong 1–35, không lọc theo QR 80%, SQS hay lịch sử. Mỗi số đặc biệt lấy độc lập, đều trong 1–12, có thể trùng số chính hoặc số đặc biệt của vé khác; QR chỉ mô tả vé sau khi tạo.</span>
+            <span class="text-xs text-gray-400 italic">Chỉ nhận bộ 5 số chính đạt SQS ≥ {MIN_SQS:g}, H ≥ {MIN_ENTROPY:.2f} (H chưa làm tròn) theo mô hình thực nghiệm kỳ 1–{CALIBRATION_LAST_DRAW}. Không chọn theo tần suất, độ vắng hay số ở giữa. Số đặc biệt lấy đều, độc lập trong 1–12 sau khi bộ chính được nhận; mọi vé vẫn có cùng xác suất trúng nếu quay công bằng.</span>
         </div>
 
         <div id="genResultList" class="space-y-3"></div>
@@ -475,29 +479,29 @@ html_content = f"""<!DOCTYPE html>
     <div id="tab-qr-theory" class="tab-content hidden space-y-6">
         <div class="bg-brand-card border border-brand-border rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
             <h2 class="text-lg md:text-xl font-extrabold text-brand-primary flex items-center gap-2">
-                📐 Miền Dung Sai QR 80%, SQS &amp; Phạm Vi Bao Phủ
+                📐 Mô Hình Thực Nghiệm, QR Lý Thuyết &amp; Xác Suất
             </h2>
             <p class="text-xs md:text-sm text-gray-300 leading-relaxed">
-                Mọi bộ 5 số chính trong 1–35 và mọi số đặc biệt trong 1–12 đều có cùng xác suất được quay. Vé được tạo đều trong toàn bộ không gian số; miền dung sai QR 80% chỉ phân loại hình dạng sau khi tạo, không phải dự đoán. SQS và entropy chỉ mô tả, không dùng để xếp hạng hay lọc vé.
+                Bộ số chính gợi ý được chọn theo mô hình hiệu chuẩn từ kỳ 1–{CALIBRATION_LAST_DRAW}; chưa chứng minh lợi thế ngoài mẫu sau kỳ {CALIBRATION_LAST_DRAW}. Mọi vé 5+1 cụ thể vẫn có cùng xác suất trúng 1/3.895.584 nếu kỳ quay công bằng. Lọc theo hình dạng không làm kết quả quay ra dễ đoán hơn.
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
-                    <h4 class="font-bold text-sm text-brand-secondary">1. Trung tâm cấu trúc Mahalanobis ($D_M^2$)</h4>
+                    <h4 class="font-bold text-sm text-brand-secondary">1. Mahalanobis thực nghiệm ($D_M^2$)</h4>
                     <p class="text-xs text-gray-400">
-                        Đo khoảng cách của tổng, số lẻ, số cao (≥ 18), khoảng trải và số cặp liên tiếp so với trung bình lý thuyết. Miền D² ≤ 7,055639346938778 chứa đúng 259706/324632 bộ 5 số (≈ 80% dưới phép quay đều); dùng D² chưa làm tròn để phân loại sau khi tạo, không lọc vé. Đuôi χ²₅ chỉ là thang tham chiếu điểm, không phải xác suất trúng.
+                        Đo khoảng cách của tổng, số lẻ, số cao (≥18), khoảng trải và cặp liền kề so với trung tâm thực nghiệm kỳ 1–{CALIBRATION_LAST_DRAW}. Mốc QR 80% <strong>lý thuyết riêng biệt</strong> dựa trên ma trận của toàn bộ 324632 tổ hợp đồng xác suất: D² lý thuyết ≤ 7,055639346938778 chứa 259706 bộ. Không dùng ngưỡng QR lý thuyết cho D² thực nghiệm.
                     </p>
                 </div>
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
                     <h4 class="font-bold text-sm text-brand-secondary">2. Entropy khoảng trống ($H$)</h4>
                     <p class="text-xs text-gray-400">
-                        Mô tả độ trải đều của các khoảng giữa 5 số và hai đầu dải 1–35. Bộ số dồn cụm vẫn hợp lệ và có cùng xác suất trúng như mọi bộ khác.
+                        H mô tả độ trải của sáu khoảng giữa 5 số và hai đầu dải 1–35. Gợi ý chỉ nhận H chưa làm tròn ≥ {MIN_ENTROPY:.2f}; bộ số không đạt vẫn hợp lệ và có cùng xác suất trúng.
                     </p>
                 </div>
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
                     <h4 class="font-bold text-sm text-brand-secondary">3. Công thức điểm SQS</h4>
                     <p class="text-xs text-gray-400">
-                        SQS = 100 × (1 − Fχ²₅(D²)) × (0,8 + 0,2 × hệ số entropy), làm tròn 1 chữ số thập phân. Chỉ dùng để mô tả; không tối đa hóa SQS hay entropy khi tạo vé. Số đặc biệt, độ vắng và số trùng kỳ trước không dùng để lọc hay ưu tiên vé.
+                        SQS = round(100 × (1 − Fχ²₅(D² thực nghiệm)) × (0,8 + 0,2 × clamp((H−1)/(ln 6−1), 0, 1)), 1). Chỉ nhận vé đạt SQS ≥ {MIN_SQS:g} và H ≥ {MIN_ENTROPY:.2f}; đuôi χ²₅ là tham chiếu hình dạng, không phải xác suất trúng. Số đặc biệt lấy đều độc lập sau khi bộ chính đạt lọc; không ưu tiên theo lịch sử.
                     </p>
                 </div>
                 <div class="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-2">
@@ -519,6 +523,11 @@ html_content = f"""<!DOCTYPE html>
     <script>
         // In-memory data store
         const BASE_DRAWS = {json.dumps(draws_data, ensure_ascii=False)};
+        const EMPIRICAL_MU = {json.dumps(EMPIRICAL_MU)};
+        const EMPIRICAL_INV_COV = {json.dumps(EMPIRICAL_INV_COV)};
+        const MIN_SQS = {json.dumps(MIN_SQS)};
+        const MIN_ENTROPY = {json.dumps(MIN_ENTROPY)};
+        const MAX_SUGGESTIONS = {json.dumps(MAX_SUGGESTIONS)};
         let LOCAL_DRAWS = [];
         let DRAWS_DATA = [];
         let EVAL_CONTEXT = null;
@@ -584,15 +593,6 @@ html_content = f"""<!DOCTYPE html>
             renderCharts();
         }}
 
-        // Theoretical moments for uniform 5-subsets of 1..35.
-        const MU = [90, 18/7, 18/7, 24, 4/7];
-        const INV_COV = [
-            [ 0.008922, -0.004452, -0.156333, -0.000572, -0.001458],
-            [-0.004452,  0.912853,  0.103882, -0.007780,  0.010327],
-            [-0.156333,  0.103882,  3.647779,  0.013338,  0.034020],
-            [-0.000572, -0.007780,  0.013338,  0.032009,  0.081643],
-            [-0.001458,  0.010327,  0.034020,  0.081643,  2.448486]
-        ];
 
         function gamma(z) {{
             const g = 7;
@@ -642,36 +642,37 @@ html_content = f"""<!DOCTYPE html>
             return Math.min(1, Math.max(0, 1 - factor * h));
         }}
 
-        function evaluateCombo(combo, special=null) {{
-            const sorted = [...combo].map(Number).sort((a,b) => a - b);
+        function scoreMain(sorted) {{
             const sum = sorted.reduce((a,b) => a + b, 0);
-            const zSum = (sum - 90.0) / 21.2132;
             const odds = sorted.filter(x => x % 2 !== 0).length;
             const highs = sorted.filter(x => x >= 18).length;
             const span = sorted[4] - sorted[0];
             let consecs = 0;
             for (let i = 0; i < 4; i++) if (sorted[i+1] - sorted[i] === 1) consecs++;
 
-            const vec = [sum - MU[0], odds - MU[1], highs - MU[2], span - MU[3], consecs - MU[4]];
+            const vec = [sum - EMPIRICAL_MU[0], odds - EMPIRICAL_MU[1], highs - EMPIRICAL_MU[2], span - EMPIRICAL_MU[3], consecs - EMPIRICAL_MU[4]];
             let dmSq = 0;
             for (let i = 0; i < 5; i++) {{
                 for (let j = 0; j < 5; j++) {{
-                    dmSq += vec[i] * INV_COV[i][j] * vec[j];
+                    dmSq += vec[i] * EMPIRICAL_INV_COV[i][j] * vec[j];
                 }}
             }}
             const pMain = 1.0 - chi2Cdf(dmSq, 5);
-
-            // Gap Entropy
             const gaps = [sorted[0], sorted[1]-sorted[0], sorted[2]-sorted[1], sorted[3]-sorted[2], sorted[4]-sorted[3], 36-sorted[4]];
             let entropy = 0;
             for (const g of gaps) {{
                 const p = g / 36.0;
-                if (p > 0) entropy -= p * Math.log(p);
+                entropy -= p * Math.log(p);
             }}
             const entropyFactor = Math.min(1.0, Math.max(0.0, (entropy - 1.0) / (Math.log(6.0) - 1.0)));
+            const sqs = Math.round(1000 * pMain * (0.8 + 0.2 * entropyFactor)) / 10;
+            return {{ sum, odds, highs, span, consecs, dmSq, pMain, entropy, sqs, modelAccepted: sqs >= MIN_SQS && entropy >= MIN_ENTROPY }};
+        }}
 
-            // Descriptive score only: no special-number or history multiplier.
-            const sqs = Math.min(100, Math.max(0, Math.round(pMain * (0.8 + 0.2 * entropyFactor) * 1000) / 10));
+        function evaluateCombo(combo, special=null) {{
+            const sorted = [...combo].map(Number).sort((a,b) => a - b);
+            const {{sum, odds, highs, span, consecs, dmSq, pMain, entropy, sqs, modelAccepted}} = scoreMain(sorted);
+            const zSum = (sum - 90.0) / 21.2132;
             if (!EVAL_CONTEXT) {{
                 const latest = DRAWS_DATA[0];
                 EVAL_CONTEXT = {{
@@ -700,6 +701,8 @@ html_content = f"""<!DOCTYPE html>
                 dmSqRaw: dmSq,
                 pMain: pMain.toFixed(4),
                 entropy: entropy.toFixed(3),
+                entropyRaw: entropy,
+                modelAccepted,
                 sqs,
                 repeatCount,
                 repeatStatus,
@@ -976,26 +979,16 @@ html_content = f"""<!DOCTYPE html>
 
             sqsEl.innerText = res.sqs.toFixed(1) + ' / 100';
 
-            if (res.sqs >= 75) {{
+            if (res.modelAccepted) {{
                 sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-green-400';
                 badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-green-900/50 text-green-300 border border-green-700';
-                badgeEl.innerText = 'Cấu trúc rất cân đối';
-                descEl.innerText = 'Điểm thẩm mỹ cao theo khoảng cách Mahalanobis và entropy; xác suất trúng không thay đổi.';
-            }} else if (res.sqs >= 40) {{
-                sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-yellow-400';
-                badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-yellow-900/50 text-yellow-300 border border-yellow-700';
-                badgeEl.innerText = 'Cấu trúc cân đối';
-                descEl.innerText = 'Đặc trưng 5 số chính khá gần trung tâm theo thang điểm mô tả SQS.';
-            }} else if (res.sqs >= 15) {{
+                badgeEl.innerText = 'Đạt bộ lọc mô hình';
+                descEl.innerText = `SQS ≥ ${{MIN_SQS}} và H ≥ ${{MIN_ENTROPY}} (H chưa làm tròn); không tăng xác suất trúng.`;
+            }} else {{
                 sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-orange-400';
                 badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-orange-900/50 text-orange-300 border border-orange-700';
-                badgeEl.innerText = 'Cấu trúc khác trung tâm';
-                descEl.innerText = 'Độ trải hoặc các đặc trưng khác trung tâm hơn; bộ số vẫn có cùng xác suất trúng.';
-            }} else {{
-                sqsEl.className = 'text-4xl md:text-5xl font-extrabold text-red-400';
-                badgeEl.className = 'px-3 py-1 rounded-lg text-xs md:text-sm font-bold uppercase tracking-wider bg-red-900/50 text-red-300 border border-red-700';
-                badgeEl.innerText = 'Cấu trúc ít cân đối';
-                descEl.innerText = 'Điểm mô tả thấp không có nghĩa bộ số khó trúng hơn.';
+                badgeEl.innerText = 'Không đạt bộ lọc mô hình';
+                descEl.innerText = `SQS hoặc H dưới ngưỡng ${{MIN_SQS}} / ${{MIN_ENTROPY}}; bộ số vẫn hợp lệ và có cùng xác suất trúng.`;
             }}
 
             const ballsContainer = document.getElementById('resBallsDisplay');
@@ -1053,21 +1046,30 @@ html_content = f"""<!DOCTYPE html>
         function chooseSpecialBall() {{
             return secureBoundedInt(12) + 1;
         }}
-        const QR_DESCRIPTOR_LIMIT = 7.055639346938778;
-        function qrRegionLabel(result) {{
-            return result.dmSqRaw <= QR_DESCRIPTOR_LIMIT ? 'Trong miền QR 80%' : 'Ngoài miền QR 80%';
-        }}
+        const MAX_MODEL_ATTEMPTS_PER_TICKET = 5000;
+        const MAX_WHEEL_ATTEMPTS = 50000;
         let CURRENT_WHEEL_TICKETS = [];
 
         function handleGenerateWheel() {{
             let t1, t2, sp1, sp2;
             try {{
-                const numbers = sampleDistinct(10);
-                t1 = numbers.slice(0, 5).sort((a, b) => a - b);
-                t2 = numbers.slice(5, 10).sort((a, b) => a - b);
+                let accepted = false;
+                for (let attempt = 0; attempt < MAX_WHEEL_ATTEMPTS; attempt++) {{
+                    const numbers = sampleDistinct(10);
+                    const first = numbers.slice(0, 5).sort((a, b) => a - b);
+                    const second = numbers.slice(5, 10).sort((a, b) => a - b);
+                    if (!scoreMain(first).modelAccepted || !scoreMain(second).modelAccepted) continue;
+                    t1 = first;
+                    t2 = second;
+                    accepted = true;
+                    break;
+                }}
+                if (!accepted) throw new Error(`Không tìm được hai vé rời nhau cùng đạt mô hình sau ${{MAX_WHEEL_ATTEMPTS}} lần thử.`);
                 sp1 = chooseSpecialBall();
                 sp2 = chooseSpecialBall();
             }} catch (err) {{
+                CURRENT_WHEEL_TICKETS = [];
+                document.getElementById('wheelContainer').classList.add('hidden');
                 showToast(err.message, true);
                 return false;
             }}
@@ -1119,7 +1121,7 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('t1Parity').innerText = `${{r1.odds}}L - ${{r1.evens}}C`;
             document.getElementById('t1SkipSum').innerText = `${{r1.skipSum}} kỳ`;
             document.getElementById('t1Repeat').innerText = `${{r1.repeatCount}} số trùng`;
-            document.getElementById('t1QR').innerText = qrRegionLabel(r1);
+            document.getElementById('t1QR').innerText = `Đạt SQS ${{r1.sqs.toFixed(1)}} · H ${{r1.entropy}}`;
 
             // Render T2
             const t2Container = document.getElementById('t2Balls');
@@ -1144,9 +1146,9 @@ html_content = f"""<!DOCTYPE html>
             document.getElementById('t2Parity').innerText = `${{r2.odds}}L - ${{r2.evens}}C`;
             document.getElementById('t2SkipSum').innerText = `${{r2.skipSum}} kỳ`;
             document.getElementById('t2Repeat').innerText = `${{r2.repeatCount}} số trùng`;
-            document.getElementById('t2QR').innerText = qrRegionLabel(r2);
+            document.getElementById('t2QR').innerText = `Đạt SQS ${{r2.sqs.toFixed(1)}} · H ${{r2.entropy}}`;
 
-            showToast("Đã lấy đều 2 vé chính rời nhau từ toàn bộ không gian số; QR và SQS chỉ mô tả.");
+            showToast("Đã chọn hai bộ chính rời nhau cùng đạt mô hình; số đặc biệt lấy đều độc lập, không tăng xác suất trúng.");
             return true;
         }}
 
@@ -1154,7 +1156,7 @@ html_content = f"""<!DOCTYPE html>
             if (CURRENT_WHEEL_TICKETS.length < 2) return;
             const t1 = CURRENT_WHEEL_TICKETS[0];
             const t2 = CURRENT_WHEEL_TICKETS[1];
-            const text = `🎯 HAI VÉ 5+1 (lấy đều từ toàn bộ số chính, rời nhau; QR/SQS chỉ mô tả):\nVé 1: ${{t1.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t1.special).padStart(2,'0')}} (SQS: ${{t1.sqs}})\nVé 2: ${{t2.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t2.special).padStart(2,'0')}} (SQS: ${{t2.sqs}})\nNếu cả 5 số chính quay ra nằm trong bể 10 số thì một vé khớp ≥3 số; xác suất vô điều kiện khớp ≥3 số là 9002/324632.`;
+            const text = `🎯 HAI VÉ 5+1 (hai bộ chính rời nhau cùng đạt bộ lọc SQS và H; không tăng xác suất trúng):\nVé 1: ${{t1.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t1.special).padStart(2,'0')}} (SQS: ${{t1.sqs}})\nVé 2: ${{t2.nums.map(x=>String(x).padStart(2,'0')).join(' ')}} | ĐB: ${{String(t2.special).padStart(2,'0')}} (SQS: ${{t2.sqs}})\nNếu cả 5 số chính quay ra nằm trong bể 10 số thì một vé khớp ≥3 số; xác suất vô điều kiện khớp ≥3 số là 9002/324632.`;
             navigator.clipboard.writeText(text).then(() => {{
                 showToast("📋 Đã sao chép 2 vé vào bộ nhớ tạm để mua ngay!");
             }}).catch(() => {{
@@ -1163,20 +1165,21 @@ html_content = f"""<!DOCTYPE html>
         }}
 
         function handleGenerate() {{
-            const count = Math.min(20, Math.max(1, parseInt(document.getElementById('genCount').value, 10) || 5));
+            const count = Math.min(MAX_SUGGESTIONS, Math.max(1, parseInt(document.getElementById('genCount').value, 10) || 5));
             const container = document.getElementById('genResultList');
             const tickets = [];
             const seen = new Set();
             try {{
-                // Only repeated main subsets are rejected; every new subset remains equally likely.
-                while (tickets.length < count) {{
+                for (let attempt = 0; tickets.length < count && attempt < count * MAX_MODEL_ATTEMPTS_PER_TICKET; attempt++) {{
                     const combo = sampleDistinct(5).sort((a, b) => a - b);
                     const key = combo.join(',');
-                    if (seen.has(key)) continue;
+                    if (seen.has(key) || !scoreMain(combo).modelAccepted) continue;
                     seen.add(key);
                     tickets.push({{ combo, special: chooseSpecialBall() }});
                 }}
+                if (tickets.length !== count) throw new Error(`Không tìm đủ ${{count}} vé đạt mô hình sau ${{count * MAX_MODEL_ATTEMPTS_PER_TICKET}} lần thử.`);
             }} catch (err) {{
+                container.replaceChildren();
                 showToast(err.message, true);
                 return;
             }}
@@ -1199,14 +1202,14 @@ html_content = f"""<!DOCTYPE html>
                         <span>Tổng: <strong class="text-gray-200">${{r.sum}}</strong></span>
                         <span>${{r.odds}}L - ${{r.evens}}C</span>
                         <span>Kỳ chưa xuất hiện (tham khảo): <strong class="text-brand-secondary">${{r.skipSum}}</strong></span>
-                        <span class="px-2.5 py-1 rounded-lg font-bold bg-green-900/40 text-green-400 border border-green-700/50">SQS cấu trúc: ${{r.sqs.toFixed(1)}}</span>
-                        <span class="px-2.5 py-1 rounded-lg font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">${{qrRegionLabel(r)}}</span>
+                        <span class="px-2.5 py-1 rounded-lg font-bold bg-green-900/40 text-green-400 border border-green-700/50">SQS mô hình: ${{r.sqs.toFixed(1)}}</span>
+                        <span class="px-2.5 py-1 rounded-lg font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">Đạt bộ lọc · H ${{r.entropy}}</span>
                     </div>
                 `;
                 fragment.appendChild(item);
             }});
             container.replaceChildren(fragment);
-            showToast(`Đã lấy đều ${{found.length}} vé từ toàn bộ 324632 bộ 5 số; QR và SQS chỉ mô tả.`);
+            showToast(`Đã chọn ${{found.length}} vé đạt mô hình thực nghiệm; số đặc biệt đều độc lập, không tăng xác suất trúng.`);
         }}
 
         function renderHistoryTable() {{

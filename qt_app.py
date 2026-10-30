@@ -12,7 +12,10 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
 
 # Import evaluation logic
-from qr_filter import evaluate_combination, suggest_uniform
+from qr_filter import (
+    CALIBRATION_LAST_DRAW, MAX_SUGGESTIONS, MIN_ENTROPY, MIN_SQS,
+    evaluate_combination, suggest_model,
+)
 
 BASE_DIR = "/home/tringuyen/xstk"
 DB_PATH = os.path.join(BASE_DIR, "vietlott_535.db")
@@ -35,7 +38,7 @@ class UpdateThread(QThread):
 class XSTKMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("XSTK - Vietlott Lotto 5/35 (Thống kê mô tả)")
+        self.setWindowTitle("XSTK - Vietlott Lotto 5/35 (Gợi ý theo mô hình QR)")
         self.resize(1100, 750)
         self.apply_theme()
         self.init_ui()
@@ -157,7 +160,7 @@ class XSTKMainWindow(QMainWindow):
         # Tabs
         self.tabs = QTabWidget()
         self.tabs.addTab(self.create_evaluate_tab(), "🔍 Đánh Giá Bộ Số")
-        self.tabs.addTab(self.create_generator_tab(), "⚡ Sinh Vé Ngẫu Nhiên")
+        self.tabs.addTab(self.create_generator_tab(), "⚡ Gợi Ý Theo Mô Hình")
         self.tabs.addTab(self.create_history_tab(), "📊 Lịch Sử Kỳ Quay")
         self.tabs.addTab(self.create_charts_tab(), "📈 Biểu Đồ Thống Kê")
         self.tabs.addTab(self.create_qr_theory_tab(), "📐 Giải Thích Thống Kê")
@@ -205,7 +208,7 @@ class XSTKMainWindow(QMainWindow):
         layout.addWidget(input_group)
 
         # Result display
-        result_group = QGroupBox("Thống kê mô tả bộ số (không dự báo kết quả)")
+        result_group = QGroupBox("Điểm mô hình thực nghiệm (không dự báo xác suất trúng)")
         res_layout = QVBoxLayout(result_group)
 
         # Score card
@@ -262,21 +265,13 @@ class XSTKMainWindow(QMainWindow):
             # Update Score Display
             sqs = res["sqs"]
             self.lbl_score_val.setText(f"{sqs:>4.1f} / 100")
-            if sqs >= 75:
+            if res["model_accepted"]:
                 self.lbl_score_val.setStyleSheet("color: #a6e3a1; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("Mức cân đối hình thức: cao")
+                self.lbl_grade.setText("Đạt bộ lọc mô hình")
                 self.lbl_grade.setStyleSheet("color: #a6e3a1; font-weight: bold;")
-            elif sqs >= 40:
-                self.lbl_score_val.setStyleSheet("color: #f9e2af; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("Mức cân đối hình thức: vừa")
-                self.lbl_grade.setStyleSheet("color: #f9e2af; font-weight: bold;")
-            elif sqs >= 10:
-                self.lbl_score_val.setStyleSheet("color: #fab387; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("Mức cân đối hình thức: thấp")
-                self.lbl_grade.setStyleSheet("color: #fab387; font-weight: bold;")
             else:
                 self.lbl_score_val.setStyleSheet("color: #f38ba8; font-size: 36px; font-weight: bold;")
-                self.lbl_grade.setText("Bộ số ít cân đối theo tiêu chí mô tả")
+                self.lbl_grade.setText("Không đạt bộ lọc mô hình")
                 self.lbl_grade.setStyleSheet("color: #f38ba8; font-weight: bold;")
 
             sp = res.get("special_info")
@@ -288,10 +283,10 @@ class XSTKMainWindow(QMainWindow):
                 f"• Tỷ lệ Tài / Xỉu:            {res['highs']} Cao (>=18) - {res['lows']} Thấp (<18)",
                 f"• Độ rộng bộ số (Span):       {res['span']} ({res['combo'][0]:02d} -> {res['combo'][-1]:02d})",
                 f"• Cặp số liền kề:             {res['consecs']} cặp",
-                f"• Khoảng cách Mahalanobis:    D_M^2 = {res['dm_sq']} (mô tả hình dạng bộ số)",
-                f"• Vùng QR 80% (chỉ mô tả): {'Trong vùng' if res['in_qr80'] else 'Ngoài vùng'} (không lọc vé)",
+                f"• Khoảng cách Mahalanobis:    D_M^2 = {res['dm_sq']:.2f} (mô hình thực nghiệm kỳ 1–{CALIBRATION_LAST_DRAW})",
+                f"• QR 80% lý thuyết:           {'Trong vùng' if res['in_qr80'] else 'Ngoài vùng'} (mốc riêng, không dùng lọc vé)",
                 f"• Điểm tham chiếu χ²(5):      {res['p_val_main']:.4f} (xấp xỉ, không phải xác suất trúng)",
-                f"• Shannon Gap Entropy:        H = {res['gap_entropy']} / 1.79 ({res['entropy_pct']}% tối đa)",
+                f"• Shannon Gap Entropy:        H = {res['gap_entropy']:.3f} / 1.79 ({res['entropy_pct']}% tối đa)",
             ]
             if sp:
                 detail.extend([
@@ -302,8 +297,9 @@ class XSTKMainWindow(QMainWindow):
                 ])
             detail.extend([
                 f"\n=== KẾT LUẬN ===",
-                f"• SQS (mô tả 5 số chính):     {res['sqs']} / 100",
-                "• Mỗi bộ 5 số có cùng xác suất trúng chính: 1/324.632 mỗi kỳ quay độc lập."
+                f"• SQS mô hình:                {res['sqs']:.1f} / 100",
+                f"• Bộ lọc SQS ≥ {MIN_SQS:g} và H ≥ {MIN_ENTROPY:.2f}: {'Đạt' if res['model_accepted'] else 'Không đạt'} (dùng giá trị H chưa làm tròn)",
+                "• Mô hình không làm thay đổi xác suất trúng: mỗi bộ 5 số có xác suất trúng chính 1/324.632 khi quay công bằng."
             ])
             self.txt_eval_detail.setPlainText("\n".join(detail))
 
@@ -316,16 +312,16 @@ class XSTKMainWindow(QMainWindow):
         layout = QVBoxLayout(tab)
         layout.setSpacing(15)
 
-        ctrl_group = QGroupBox("Sinh đều trên toàn bộ C(35,5) tổ hợp (không lọc theo QR/SQS)")
+        ctrl_group = QGroupBox(f"Gợi ý theo mô hình thực nghiệm kỳ 1–{CALIBRATION_LAST_DRAW} (SQS ≥ {MIN_SQS:g}, H ≥ {MIN_ENTROPY:.2f}; không tăng xác suất trúng)")
         ctrl_layout = QHBoxLayout(ctrl_group)
         
         ctrl_layout.addWidget(QLabel("Số lượng bộ số cần tạo:"))
         self.spin_count = QSpinBox()
-        self.spin_count.setRange(1, 50)
+        self.spin_count.setRange(1, MAX_SUGGESTIONS)
         self.spin_count.setValue(5)
         ctrl_layout.addWidget(self.spin_count)
 
-        btn_gen = QPushButton("⚡ Sinh Vé Ngẫu Nhiên")
+        btn_gen = QPushButton("⚡ Gợi Ý Vé Theo Mô Hình")
         btn_gen.clicked.connect(self.run_generation)
         ctrl_layout.addWidget(btn_gen)
         ctrl_layout.addStretch()
@@ -343,7 +339,11 @@ class XSTKMainWindow(QMainWindow):
 
     def run_generation(self):
         count = self.spin_count.value()
-        found = suggest_uniform(count)
+        try:
+            found = suggest_model(count)
+        except (RuntimeError, ValueError) as exc:
+            QMessageBox.warning(self, "Không thể gợi ý vé", str(exc))
+            return
 
         self.table_gen.setRowCount(len(found))
         for row_idx, r in enumerate(found):
@@ -365,7 +365,7 @@ class XSTKMainWindow(QMainWindow):
             item_sqs.setForeground(QColor("#a6e3a1"))
             self.table_gen.setItem(row_idx, 6, item_sqs)
             
-            self.table_gen.setItem(row_idx, 7, QTableWidgetItem("Trong vùng QR 80%" if r["in_qr80"] else "Ngoài vùng QR 80%"))
+            self.table_gen.setItem(row_idx, 7, QTableWidgetItem("Đạt bộ lọc mô hình" if r["model_accepted"] else "Không đạt bộ lọc"))
 
     # ------------------ TAB 3: LỊCH SỬ KỲ QUAY ------------------
     def create_history_tab(self):
@@ -469,30 +469,28 @@ class XSTKMainWindow(QMainWindow):
         layout = QVBoxLayout(tab)
         txt = QTextEdit()
         txt.setReadOnly(True)
-        html = """
-        <h2 style='color: #89b4fa;'>📐 THỐNG KÊ MÔ TẢ, KHÔNG DỰ ĐOÁN</h2>
-        <p>Mỗi kỳ quay là độc lập. Mỗi bộ 5 số chính cụ thể có cùng xác suất
-        trùng khớp 5 số chính: 1/C(35,5) = 1/324.632. Số đặc biệt được chọn
-        độc lập, đều trong 1–12; trùng số chính không phải là bất lợi.</p>
-        <p>SQS chỉ mô tả độ cân đối hình thức của 5 số chính, dựa trên các đặc trưng
-        tổng, chẵn/lẻ, cao/thấp, độ rộng và cặp liền kề. Khoảng cách Mahalanobis
-        dùng ma trận hiệp phương sai để xét các đặc trưng có tương quan;
-        điểm tham chiếu &chi;<sup>2</sup>(5) chỉ là xấp xỉ mô tả, không phải
-        xác suất trúng hay xếp hạng khả năng quay ra của một bộ số.</p>
-        <p>Vùng QR 80% là D² ≤ 7,055639346938778, chứa 259.706/324.632
-        tổ hợp lý thuyết. Bộ số được sinh đều từ toàn bộ C(35,5) tổ hợp,
-        không lọc theo QR, SQS, entropy hay lịch sử. QR chỉ mô tả vé sau khi sinh;
-        đây là phép tương tự về dung sai, không phải mã sửa sai QR.</p>
-        <p>Entropy khoảng cách H = -&Sigma; p<sub>i</sub> ln(p<sub>i</sub>)
-        mô tả mức rải đều trên dải 1–35, không làm tăng cơ hội trúng.
-        Với 5 số chọn từ 1–35, sáu khoảng trống dương có tổng 36,
-        trung bình mỗi khoảng là 6.</p>
-        <p>Hai vé trong dàn 10 số không giao nhau; mỗi vé riêng lẻ đều trên
-        C(35,5), nhưng hai vé phụ thuộc nhau vì không có số chính chung.
-        Chỉ bảo đảm ít nhất một vé khớp từ 3 số chính trở lên <b>nếu</b>
-        cả 5 số trúng đều nằm trong tập hợp 10 số của hai vé.
-        Không có bảo đảm vô điều kiện: xác suất ít nhất một vé khớp
-        từ 3 số chính trở lên là 9002/324632 cho một kỳ quay.</p>
+        html = f"""
+        <h2 style='color: #89b4fa;'>📐 CHỌN VÉ THEO MÔ HÌNH, KHÔNG DỰ ĐOÁN</h2>
+        <p>Mô hình thực nghiệm được hiệu chuẩn từ các kỳ 1–{CALIBRATION_LAST_DRAW};
+        đây không phải bằng chứng hiệu quả ngoài mẫu sau kỳ {CALIBRATION_LAST_DRAW}.
+        Mỗi kỳ quay là độc lập. Mỗi bộ 5 số chính cụ thể có cùng xác suất
+        khớp 5 số chính: 1/C(35,5) = 1/324.632, vé 5+1 là 1/3.895.584.</p>
+        <p>Vé gợi ý lấy mẫu ngẫu nhiên bằng bộ sinh an toàn rồi chỉ nhận nếu
+        SQS ≥ {MIN_SQS:g} và entropy khoảng trống H ≥ {MIN_ENTROPY:.2f}
+        (kiểm tra H chưa làm tròn); loại bộ số chính trùng lặp. Điểm SQS lấy
+        khoảng cách Mahalanobis với trung tâm và nghịch đảo hiệp phương sai
+        thực nghiệm của năm đặc trưng: tổng, số lẻ, số ≥18, độ rộng, số cặp liền kề.
+        SQS = round(100 × (1 − Fχ²₅(D²)) ×
+        (0,8 + 0,2 × clamp((H−1)/(ln 6−1), 0, 1)), 1).
+        Đuôi &chi;<sup>2</sup>(5) chỉ là thang tham chiếu, không phải xác suất trúng.</p>
+        <p>QR 80% <b>lý thuyết riêng</b> tính theo trung tâm và hiệp phương sai của
+        toàn bộ 324.632 bộ đồng xác suất; D² lý thuyết ≤ 7,055639346938778
+        chứa 259.706 tổ hợp. QR chỉ dùng để đối chiếu, không dùng làm ngưỡng
+        cho khoảng cách thực nghiệm hay để lọc vé.</p>
+        <p>Số đặc biệt được chọn đều và độc lập trong 1–12 <b>sau khi</b>
+        bộ chính đạt mô hình, có thể trùng số chính hoặc số đặc biệt vé khác.
+        Không cấm số từng ra, không ưu tiên số vắng hay số ở giữa; mô hình
+        không tạo lợi thế dự đoán kết quả quay tiếp theo.</p>
         """
         txt.setHtml(html)
         layout.addWidget(txt)

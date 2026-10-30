@@ -1,0 +1,72 @@
+{
+  "status": "complete",
+  "purpose": "Prize-tier tally for 30B independent uniform 5+1 tickets against the already observed fixed draw #00977; exact enumeration supplies the reference probabilities.",
+  "warning": "This is a retrospective arithmetic simulation against one fixed past draw. It is not a prediction, a payout forecast, or evidence that the gate improves odds.",
+  "official_prize_rules": "https://vietlott.vn/vi/choi/lotto535/gioi-thieu-san-pham-535",
+  "device": "cuda",
+  "gpu_name": "Tesla T4",
+  "torch_version": "2.11.0+cu130",
+  "python_version": "3.13.16",
+  "seed": 5350000031,
+  "target_draws": 30000000000,
+  "completed_draws": 30000000000,
+  "batch_size": 20000000,
+  "winning_draw": {
+    "draw_id": 977,
+    "main": [
+      3,
+      8,
+      21,
+      30,
+      34
+    ],
+    "special": 11
+  },
+  "winning_main_passes_gate": false,
+  "exact_total_5_plus_1_tickets": 3895584,
+  "exact_all_ticket_category_counts": {
+    "jackpot_5_main_plus_special": 1,
+    "first_5_main": 11,
+    "second_4_main_plus_special": 150,
+    "third_4_main": 1650,
+    "fourth_3_main_plus_special": 4350,
+    "fifth_3_main": 47850,
+    "encouragement_special_plus_0_to_2_main": 320131,
+    "not_a_prize": 3521441
+  },
+  "exact_selected_ticket_category_counts": {
+    "jackpot_5_main_plus_special": 0,
+    "first_5_main": 0,
+    "second_4_main_plus_special": 22,
+    "third_4_main": 242,
+    "fourth_3_main_plus_special": 625,
+    "fifth_3_main": 6875,
+    "encouragement_special_plus_0_to_2_main": 43585,
+    "not_a_prize": 479435
+  },
+  "exact_selected_ticket_count": 530784,
+  "all_ticket_category_counts": {
+    "jackpot_5_main_plus_special": 7629,
+    "first_5_main": 84830,
+    "second_4_main_plus_special": 1154822,
+    "third_4_main": 12707364,
+    "fourth_3_main_plus_special": 33493706,
+    "fifth_3_main": 368483086,
+    "encouragement_special_plus_0_to_2_main": 2465374054,
+    "not_a_prize": 27118694509
+  },
+  "selected_ticket_count": 4087556370,
+  "selected_ticket_category_counts": {
+    "jackpot_5_main_plus_special": 0,
+    "first_5_main": 0,
+    "second_4_main_plus_special": 169668,
+    "third_4_main": 1862566,
+    "fourth_3_main_plus_special": 4813266,
+    "fifth_3_main": 52947924,
+    "encouragement_special_plus_0_to_2_main": 335663854,
+    "not_a_prize": 3692099092
+  },
+  "elapsed_seconds": 72.26854050200006,
+  "throughput_draws_per_second": 415118387.4976655,
+  "generated_at": "2026-10-30T14:00:49.155686+00:00"
+}

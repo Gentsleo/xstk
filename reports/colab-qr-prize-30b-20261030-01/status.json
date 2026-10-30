@@ -1,0 +1,8 @@
+{
+  "state": "completed",
+  "session": "xstk-qr-prize-30b-20261030-01",
+  "target_draws": 30000000000,
+  "updated_at": "2026-10-30T14:00:53.641740+00:00",
+  "cleanup": "stopping",
+  "runtime_stopped": true
+}

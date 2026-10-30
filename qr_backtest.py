@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
-"""Chronological QR tolerance calibration and out-of-sample coverage audit.
+"""Audit the frozen production gate and chronological theoretical QR coverage.
 
-Only the empirical D² cutoff is trained. MU and INV_COV remain the fixed
-combinatorial (fair-draw) parameters from qr_filter.py. This command does not
-change ticket selection or suggest that conditioning improves winning odds.
+The theoretical walk-forward test trains only its changing cutoff. The production
+gate instead uses coefficients frozen from draws 1..954: observations through
+954 are retrospective calibration, never an unseen holdout for that gate.
+Neither region coverage nor historical inclusion measures ticket win odds.
 """
 
 import argparse
 from bisect import bisect_right, insort
 from datetime import datetime
+import hashlib
 from itertools import combinations
 import json
 import math
 from pathlib import Path
 import sqlite3
 
-from qr_filter import QR80_SIZE, QR80_THRESHOLD, distance_squared
+from qr_filter import (CALIBRATION_LAST_DRAW, EMPIRICAL_INV_COV, EMPIRICAL_MU,
+                       MIN_ENTROPY, MIN_SQS, QR80_SIZE, QR80_THRESHOLD,
+                       distance_squared, score_main)
 
 
 TOTAL_COMBINATIONS = math.comb(35, 5)
@@ -23,6 +27,7 @@ QUANTILE = 0.80
 DEFAULT_JSON = Path(__file__).resolve().with_name("vietlott_535.json")
 DEFAULT_DB = Path(__file__).resolve().with_name("vietlott_535.db")
 
+MODEL_REFERENCE = "f597fffb6ec5a3ab19134185815fd1e4eddc12ea"
 
 
 
@@ -176,6 +181,133 @@ def run(draws, min_train, source):
           "to adopt the trained cutoff automatically.")
 
 
+def production_audit(draws, source):
+    """Enumerate exact model/fair regions, then count chronological draw groups."""
+    accepted = overlap = fair_volume = 0
+    for combo in combinations(range(1, 36), 5):
+        model = score_main(combo)
+        fair = distance_squared(combo) <= QR80_THRESHOLD
+        accepted += model["model_accepted"]
+        fair_volume += fair
+        overlap += model["model_accepted"] and fair
+    if fair_volume != QR80_SIZE:
+        raise RuntimeError(f"Fair QR reference size changed: {fair_volume} != {QR80_SIZE}")
+
+    fair_probability = fair_volume / TOTAL_COMBINATIONS
+    model_probability = accepted / TOTAL_COMBINATIONS
+
+    def summarize(rows, label):
+        n = len(rows)
+        model_hits = fair_hits = both_hits = 0
+        for _, _, combo in rows:
+            selected = score_main(combo)["model_accepted"]
+            fair = distance_squared(combo) <= QR80_THRESHOLD
+            model_hits += selected
+            fair_hits += fair
+            both_hits += selected and fair
+        return {
+            "label": label,
+            "count": n,
+            "model_hits": model_hits,
+            "model_rate": model_hits / n if n else None,
+            "model_fair_expected_hits": n * model_probability,
+            "fair_qr_hits": fair_hits,
+            "fair_qr_rate": fair_hits / n if n else None,
+            "fair_qr_expected_hits": n * fair_probability,
+            "model_and_fair_qr_hits": both_hits,
+            "model_wilson_95": list(wilson_interval(model_hits, n)) if n else None,
+            "fair_qr_wilson_95": list(wilson_interval(fair_hits, n)) if n else None,
+            "model_fair_sd_hits": math.sqrt(n * model_probability *
+                                            (1 - model_probability)),
+            "fair_qr_fair_sd_hits": math.sqrt(n * fair_probability *
+                                            (1 - fair_probability)),
+        }
+
+    calibration = summarize([d for d in draws if d[0] <= CALIBRATION_LAST_DRAW],
+                            "calibration/retrospective; NOT unseen holdout")
+    post = summarize([d for d in draws if d[0] > CALIBRATION_LAST_DRAW],
+                     "post-calibration draw_id > 954; retrospective if already examined")
+    historical = summarize(draws, "all observed draws; includes calibration")
+    digest = hashlib.sha256()
+    with source.open("rb") as data:
+        for chunk in iter(lambda: data.read(1024 * 1024), b""):
+            digest.update(chunk)
+
+    report = {
+        "audit": "frozen empirical production main gate; no held-out tuning",
+        "model_reference_commit": MODEL_REFERENCE,
+        "source": str(source),
+        "source_sha256": digest.hexdigest(),
+        "coefficients": {
+            "feature_order": ["sum", "odds", "highs_ge_18", "span", "consecutive_pairs"],
+            "empirical_mu": EMPIRICAL_MU,
+            "empirical_inv_cov": EMPIRICAL_INV_COV,
+            "frozen_calibration_last_draw_id": CALIBRATION_LAST_DRAW,
+            "sqs_min_inclusive": MIN_SQS,
+            "gap_entropy_min_inclusive": MIN_ENTROPY,
+            "sqs_formula": "round(100*(1-chi2CDF5(empirical_dm_sq))*(0.8+0.2*clamp((H-1)/(ln(6)-1),0,1)),1)",
+            "gap_entropy_uses_unrounded_value": True,
+        },
+        "regions": {
+            "total_main_combinations": TOTAL_COMBINATIONS,
+            "model_accepted_main_combinations": accepted,
+            "model_fair_inclusion_probability": model_probability,
+            "fair_qr80_main_combinations": fair_volume,
+            "fair_qr80_inclusion_probability": fair_probability,
+            "model_and_fair_qr80_main_combinations": overlap,
+            "fair_qr80_threshold": QR80_THRESHOLD,
+            "fair_qr80_role": "separate fixed theoretical baseline, not the production gate",
+        },
+        "draws": {
+            "historical": historical,
+            "calibration_retrospective": calibration,
+            "post_954": post,
+        },
+        "interpretation": {
+            "region_coverage": "fraction of fair main combinations inside a fixed region",
+            "historical_inclusion": "observed main draws inside each region, not ticket odds",
+            "ticket_fair_main_jackpot_probability": 1 / TOTAL_COMBINATIONS,
+            "ticket_fair_5_plus_special_jackpot_probability": 1 / (12 * TOTAL_COMBINATIONS),
+            "special": "independently uniform in 1..12; not scored or gated",
+            "uncertainty": "unadjusted Wilson 95% for observed model and QR rates under "
+                           "independent draws; calibration and all-history are retrospective, "
+                           "and examined post-954 draws are not an untouched prospective "
+                           "holdout. Post-954 intervals exist only if such draws exist",
+            "conclusion": "conditioning on model shape does not improve any fixed ticket's "
+                          "fair-draw jackpot probability or prove predictive advantage",
+        },
+    }
+    print(f"\nFrozen production model (source draws 1..{CALIBRATION_LAST_DRAW}; "
+          f"commit {MODEL_REFERENCE}): SQS >= {MIN_SQS:g}, raw H >= {MIN_ENTROPY:.2f}.")
+    print(f"Exact main gate: {accepted}/{TOTAL_COMBINATIONS} "
+          f"({model_probability:.2%}) fair-region inclusion; model ∩ independent "
+          f"theoretical QR80: {overlap}/{TOTAL_COMBINATIONS}.")
+    print(f"Separate theoretical QR80 baseline: {fair_volume}/{TOTAL_COMBINATIONS} "
+          f"({fair_probability:.2%}); it does not select production tickets.")
+    for summary in (calibration, post, historical):
+        n = summary["count"]
+        rate = f'{summary["model_rate"]:.2%}' if n else "n/a"
+        fair_rate = f'{summary["fair_qr_rate"]:.2%}' if n else "n/a"
+        print(f"{summary['label']}: model {summary['model_hits']}/{n} ({rate}), "
+              f"fair expected {summary['model_fair_expected_hits']:.1f}; "
+              f"QR80 {summary['fair_qr_hits']}/{n} ({fair_rate}), "
+              f"fair expected {summary['fair_qr_expected_hits']:.1f}.")
+        if summary is post and n:
+            low, high = summary["model_wilson_95"]
+            fair_low, fair_high = summary["fair_qr_wilson_95"]
+            print(f"Post-calibration unadjusted Wilson 95%: model "
+                  f"[{low:.2%}, {high:.2%}], fair QR80 "
+                  f"[{fair_low:.2%}, {fair_high:.2%}]; fair-draw SD "
+                  f"{summary['model_fair_sd_hits']:.1f}/"
+                  f"{summary['fair_qr_fair_sd_hits']:.1f} hits (model/QR80).")
+    print("Only draw_id > 954 falls outside the coefficient calibration period; "
+          "already examined later draws are retrospective, not untouched "
+          "prospective validation. Region inclusion is not a per-ticket win "
+          f"probability; under fair independent draws each fixed 5+1 ticket has "
+          f"chance 1/{12 * TOTAL_COMBINATIONS}. No predictive advantage is established.")
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, help="Draws .json or .db file "
@@ -183,6 +315,8 @@ def main():
     parser.add_argument("--min-train", type=int, default=200, metavar="N",
                         help="Chronological prefix size before one-step-forward scoring "
                         "(at least 50; default: 200)")
+    parser.add_argument("--output", type=Path, help="Save structured production audit JSON "
+                        "(new file only; refuses to overwrite)")
     args = parser.parse_args()
     if args.min_train < 50:
         parser.error("--min-train must be at least 50 draws")
@@ -190,6 +324,11 @@ def main():
     try:
         draws = load_draws(source)
         run(draws, args.min_train, source)
+        report = production_audit(draws, source)
+        if args.output is not None:
+            with args.output.open("x", encoding="utf-8") as target:
+                json.dump(report, target, ensure_ascii=False, indent=2)
+                target.write("\n")
     except (OSError, ValueError, sqlite3.Error, json.JSONDecodeError, RuntimeError) as exc:
         parser.error(str(exc))
 

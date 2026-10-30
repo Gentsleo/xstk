@@ -1,0 +1,159 @@
+{
+  "scope": "Corrected 30B uniform 5+1 ticket proposals matched retrospectively to observed draw #00977. Prize tiers are mutually exclusive; encouragement requires the special number and 0, 1, or 2 matching main numbers. Exact enumeration is authoritative.",
+  "winning_draw": {
+    "draw_id": 977,
+    "main": [
+      3,
+      8,
+      21,
+      30,
+      34
+    ],
+    "special": 11
+  },
+  "winning_main_passes_model_gate": false,
+  "exact_ticket_space": 3895584,
+  "all_ticket_prize_rows": [
+    {
+      "category": "jackpot_5_main_plus_special",
+      "exact_tickets_out_of_3895584": 1,
+      "expected_in_30b": 7701.027625126297,
+      "observed_in_30b": 7629,
+      "difference": -72.0276251262967,
+      "z_vs_exact": -0.8207763057188728
+    },
+    {
+      "category": "first_5_main",
+      "exact_tickets_out_of_3895584": 11,
+      "expected_in_30b": 84711.30387638927,
+      "observed_in_30b": 84830,
+      "difference": 118.69612361073087,
+      "z_vs_exact": 0.407818070826144
+    },
+    {
+      "category": "second_4_main_plus_special",
+      "exact_tickets_out_of_3895584": 150,
+      "expected_in_30b": 1155154.1437689445,
+      "observed_in_30b": 1154822,
+      "difference": -332.1437689445447,
+      "z_vs_exact": -0.3090398616473449
+    },
+    {
+      "category": "third_4_main",
+      "exact_tickets_out_of_3895584": 1650,
+      "expected_in_30b": 12706695.58145839,
+      "observed_in_30b": 12707364,
+      "difference": 668.4185416102409,
+      "z_vs_exact": 0.18755306653950726
+    },
+    {
+      "category": "fourth_3_main_plus_special",
+      "exact_tickets_out_of_3895584": 4350,
+      "expected_in_30b": 33499470.16929939,
+      "observed_in_30b": 33493706,
+      "difference": -5764.169299390167,
+      "z_vs_exact": -0.9964611511311467
+    },
+    {
+      "category": "fifth_3_main",
+      "exact_tickets_out_of_3895584": 47850,
+      "expected_in_30b": 368494171.8622933,
+      "observed_in_30b": 368483086,
+      "difference": -11085.862293303013,
+      "z_vs_exact": -0.581082684330112
+    },
+    {
+      "category": "encouragement_special_plus_0_to_2_main",
+      "exact_tickets_out_of_3895584": 320131,
+      "expected_in_30b": 2465337674.6593065,
+      "observed_in_30b": 2465374054,
+      "difference": 36379.340693473816,
+      "z_vs_exact": 0.7647814891960546
+    },
+    {
+      "category": "not_a_prize",
+      "exact_tickets_out_of_3895584": 3521441,
+      "expected_in_30b": 27118714421.252373,
+      "observed_in_30b": 27118694509,
+      "difference": -19912.2523727417,
+      "z_vs_exact": -0.39016949699199616
+    }
+  ],
+  "gate_selected_prize_rows": [
+    {
+      "category": "jackpot_5_main_plus_special",
+      "exact_selected_tickets_out_of_3895584": 0,
+      "expected_in_30b": 0.0,
+      "observed_in_30b": 0,
+      "difference": 0.0,
+      "z_vs_exact": null
+    },
+    {
+      "category": "first_5_main",
+      "exact_selected_tickets_out_of_3895584": 0,
+      "expected_in_30b": 0.0,
+      "observed_in_30b": 0,
+      "difference": 0.0,
+      "z_vs_exact": null
+    },
+    {
+      "category": "second_4_main_plus_special",
+      "exact_selected_tickets_out_of_3895584": 22,
+      "expected_in_30b": 169422.60775277854,
+      "observed_in_30b": 169668,
+      "difference": 245.39224722146173,
+      "z_vs_exact": 0.5961786002426184
+    },
+    {
+      "category": "third_4_main",
+      "exact_selected_tickets_out_of_3895584": 242,
+      "expected_in_30b": 1863648.6852805638,
+      "observed_in_30b": 1862566,
+      "difference": -1082.6852805637754,
+      "z_vs_exact": -0.7931104985899894
+    },
+    {
+      "category": "fourth_3_main_plus_special",
+      "exact_selected_tickets_out_of_3895584": 625,
+      "expected_in_30b": 4813142.265703935,
+      "observed_in_30b": 4813266,
+      "difference": 123.73429606482387,
+      "z_vs_exact": 0.05640408833717317
+    },
+    {
+      "category": "fifth_3_main",
+      "exact_selected_tickets_out_of_3895584": 6875,
+      "expected_in_30b": 52944564.92274329,
+      "observed_in_30b": 52947924,
+      "difference": 3359.0772567093372,
+      "z_vs_exact": 0.46205413871507056
+    },
+    {
+      "category": "encouragement_special_plus_0_to_2_main",
+      "exact_selected_tickets_out_of_3895584": 43585,
+      "expected_in_30b": 335649289.04112965,
+      "observed_in_30b": 335663854,
+      "difference": 14564.958870351315,
+      "z_vs_exact": 0.7994836759095381
+    },
+    {
+      "category": "not_a_prize",
+      "exact_selected_tickets_out_of_3895584": 479435,
+      "expected_in_30b": 3692142179.452426,
+      "observed_in_30b": 3692099092,
+      "difference": -43087.452425956726,
+      "z_vs_exact": -0.7572329314792997
+    }
+  ],
+  "accepted_candidate_count": {
+    "exact_probability": 0.13625274156583456,
+    "expected_in_30b": 4087582246.9750366,
+    "observed_in_30b": 4087556370,
+    "z_vs_exact": -0.43549875096707075
+  },
+  "interpretation": [
+    "All-ticket counts validate uniform ticket generation against the exact 3,895,584-ticket partition.",
+    "For draw #00977, its five-main combination fails the frozen gate; therefore any ticket whose main passes the gate cannot win Jackpot or first prize against this already observed draw.",
+    "That retrospective exclusion is not evidence about any future draw and does not change fixed-ticket odds under a fair draw."
+  ]
+}

@@ -46,22 +46,37 @@ Cấu hình MCP cho dự án lưu tại:
 
 ---
 
-## 3. Mô hình dung sai QR
+## 3. Cổng hình thái sản xuất và chuẩn QR lý thuyết
 
-Với vector đặc trưng [tổng, số lẻ, số cao ≥18, độ rộng, cặp liền kề],
-$D^2=(x-\mu)^T\Sigma^{-1}(x-\mu)$ dùng trung bình và hiệp phương sai
-trên toàn bộ 324.632 tổ hợp đồng xác suất. Vùng QR là
-$D^2\le7.055639346938778$, chứa 259.706 tổ hợp (80,0001%).
-Sinh vé đều trên toàn bộ 324.632 tổ hợp bằng SystemRandom (Python) hoặc
-crypto.getRandomValues + rejection mapping (web), không lọc QR/SQS/lịch sử.
-Nhiều vé không lặp bộ chính; hai vé wheel rời nhau nên phụ thuộc, mỗi vé vẫn đều.
-QR chỉ mô tả sau khi sinh; không ưu tiên số cũ, số vắng hoặc chống chia giải.
+Vector [tổng, số lẻ, số cao ≥18, độ rộng, cặp liền kề]. Cổng sản xuất dùng
+`EMPIRICAL_MU = [91.1069, 2.5681, 2.6237, 23.8512, 0.5755]` và
+`EMPIRICAL_INV_COV` trong `qr_filter.py`, cố định từ kỳ 1–954 theo bản
+`f597fffb6ec5a3ab19134185815fd1e4eddc12ea`. Không cập nhật theo
+kết quả mới. Với $D_{\rm emp}^2=(x-\mu_{\rm emp})^T\Sigma_{\rm emp}^{-1}
+(x-\mu_{\rm emp})$ và entropy sáu khoảng trống
+$H=-\sum(g_i/36)\ln(g_i/36)$:
+$$\mathrm{SQS}=\operatorname{round}\left(
+100[1-F_{\chi^2_5}(D_{\rm emp}^2)]
+[0.8+0.2\operatorname{clamp}((H-1)/(\ln6-1),0,1)],1\right).$$
+Chỉ nhận bộ chính khi SQS ≥ 80 và **H chưa làm tròn ≥ 1,50**; đề xuất
+đồng đều bằng nguồn ngẫu nhiên bảo mật trước cổng, không lặp bộ đã nhận.
+Số đặc biệt được lấy đều, độc lập 1–12 *sau khi* bộ chính đạt cổng, được
+phép trùng số chính hoặc số đặc biệt của vé khác. Wheel tìm hai bộ chính
+đạt cổng và rời nhau; `./xstk.sh qr --uniform N` là mốc nghiên cứu lấy mẫu
+không lọc.
 
-Entropy khoảng trống và SQS chỉ mô tả hình thái, không phải xác suất.
-Đuôi $\chi^2_5$ là tham chiếu xấp xỉ, không phải phân phối chính xác.
-Mỗi vé 5+1 có xác suất $1/3895584$ nếu quay công bằng và độc lập.
-Vùng này mô phỏng ý tưởng dung sai, không có mã sửa sai để dự đoán xổ số.
-Huấn luyện ngưỡng theo thời gian và kiểm tra ngoài mẫu: `./xstk.sh backtest`.
+Chuẩn **lý thuyết** riêng dùng `MU`, `INV_COV` trên 324.632 bộ đều:
+$D_{\rm fair}^2\le7.055639346938778$ chứa 259.706 bộ. Cờ QR80 chỉ mô tả,
+không phải cổng chọn vé. Đuôi chi-square xấp xỉ là điểm hình thái, không
+phải xác suất trúng; mỗi vé cố định 5+1 vẫn có xác suất $1/3895584$ nếu
+quay đều độc lập. `./xstk.sh backtest --output audit_model.json` đối chiếu
+thể tích vùng, tỷ lệ lịch sử và chuẩn fair: kỳ ≤954 là hồi cứu/hiệu
+chuẩn; kỳ >954 nằm ngoài giai đoạn tính hệ số nhưng nếu đã xem vẫn là
+hồi cứu, không phải holdout chưa thấy. MCP chỉ phục vụ tính toán/đối
+chiếu nghiên cứu, runtime dùng hệ số đã khóa; báo cáo
+`reports/qr_model_verification.json` ghi cách kiểm tra độc lập, không phải
+lệnh MCP chạy mỗi khi sinh vé. Lab/neural là nghiên cứu riêng, không phải
+engine này; không suy ra lợi thế dự báo từ độ phủ.
 
 ---
 
@@ -79,5 +94,7 @@ Tất cả thao tác có thể thực hiện thông qua `./xstk.sh`:
 | `./xstk.sh cron-off` | `auto_update.py --remove-cron` | Tắt Cron job |
 | `./xstk.sh watch` | `auto_update.py --watch` | Chạy loop theo dõi liên tục trong terminal |
 | `./xstk.sh qr <nums>` | `qr_filter.py` | Đánh giá bộ số theo Mahalanobis & Entropy (vd: `./xstk.sh qr 6 15 21 30 34 6`) |
-| `./xstk.sh qr --gen N` | `qr_filter.py --gen N` | Sinh đều N bộ trên toàn không gian, QR chỉ mô tả |
+| `./xstk.sh qr --gen N` | `qr_filter.py --gen N` | Sinh 1–20 vé với bộ chính qua cổng SQS/H, số đặc biệt độc lập đều |
+| `./xstk.sh qr --uniform N` | `qr_filter.py --uniform N` | Mốc nghiên cứu đồng đều không lọc trên toàn không gian |
+| `./xstk.sh wheel` | `qr_filter.py --wheel 10` | Hai bộ chính qua cổng, rời nhau; bảo đảm khớp 3 chỉ có điều kiện |
 | `./xstk.sh logs` | `tail -f auto_update.log` | Xem nhật ký cập nhật |
