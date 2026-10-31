@@ -11722,5 +11722,29 @@
     "num5": 34,
     "special": 11,
     "numbers_str": "03 08 21 30 34 | 11"
+  },
+  {
+    "draw_id": 978,
+    "draw_code": "00978",
+    "date": "30/10/2026",
+    "num1": 2,
+    "num2": 21,
+    "num3": 22,
+    "num4": 27,
+    "num5": 30,
+    "special": 6,
+    "numbers_str": "02 21 22 27 30 | 06"
+  },
+  {
+    "draw_id": 979,
+    "draw_code": "00979",
+    "date": "31/10/2026",
+    "num1": 8,
+    "num2": 20,
+    "num3": 26,
+    "num4": 29,
+    "num5": 33,
+    "special": 10,
+    "numbers_str": "08 20 26 29 33 | 10"
   }
 ]
