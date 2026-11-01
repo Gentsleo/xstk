@@ -272,26 +272,37 @@ def watch_loop(interval_sec):
             log(f"[!] Ngoại lệ trong vòng lặp cập nhật: {e}")
         time.sleep(interval_sec)
 
-def install_cron(minutes=30):
+def install_cron(minutes=None, schedule=None):
     python_bin = sys.executable
     script_path = os.path.abspath(__file__)
-    cron_cmd = f"*/{minutes} * * * * {python_bin} {script_path} >> {LOG_PATH} 2>&1"
-    
+
     # Read existing crontab
     res = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
     current_cron = res.stdout if res.returncode == 0 else ""
-    
-    # Check if already present
-    lines = [line for line in current_cron.splitlines() if script_path not in line]
-    lines.append(f"# Vietlott 5/35 Auto Update every {minutes} mins")
-    lines.append(cron_cmd)
+
+    # Remove previous Vietlott entries
+    lines = [line for line in current_cron.splitlines() if script_path not in line and "Vietlott 5/35" not in line]
+
+    if schedule:
+        lines.append(f"# Vietlott 5/35 Auto Update custom schedule: {schedule}")
+        lines.append(f"{schedule} {python_bin} {script_path} >> {LOG_PATH} 2>&1")
+        desc = f"theo lịch biểu: {schedule}"
+    elif minutes is not None:
+        lines.append(f"# Vietlott 5/35 Auto Update every {minutes} mins")
+        lines.append(f"*/{minutes} * * * * {python_bin} {script_path} >> {LOG_PATH} 2>&1")
+        desc = f"mỗi {minutes} phút"
+    else:
+        # Mặc định: sau giờ xổ số 13h và 21h hàng ngày (13:15, 13:30, 13:45, 14:00 và 21:15, 21:30, 21:45, 22:00)
+        lines.append("# Vietlott 5/35 Auto Update sau giờ xổ số (13h và 21h hàng ngày)")
+        lines.append(f"15,30,45 13,21 * * * {python_bin} {script_path} >> {LOG_PATH} 2>&1")
+        lines.append(f"0 14,22 * * * {python_bin} {script_path} >> {LOG_PATH} 2>&1")
+        desc = "sau giờ xổ số 13h và 21h (13:15, 13:30, 13:45, 14:00 và 21:15, 21:30, 21:45, 22:00 hàng ngày)"
+
     new_cron = "\n".join(lines).strip() + "\n"
-    
     proc = subprocess.Popen(["crontab", "-"], stdin=subprocess.PIPE, text=True)
     proc.communicate(new_cron)
     if proc.returncode == 0:
-        log(f"[✓] Đã cài đặt Cron job thành công! Tự động cập nhật mỗi {minutes} phút.")
-        log(f"    Cron entry: {cron_cmd}")
+        log(f"[✓] Đã cài đặt Cron job thành công! Tự động cập nhật {desc}.")
     else:
         log("[!] Cài đặt Cron job thất bại.")
 
@@ -332,8 +343,9 @@ def show_status():
     res = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
     script_path = os.path.abspath(__file__)
     if res.returncode == 0 and script_path in res.stdout:
-        cron_line = [l for l in res.stdout.splitlines() if script_path in l][0]
-        print(f"• Lịch tự động (Cron): ĐANG BẬT ({cron_line.split()[0]} {cron_line.split()[1]})")
+        cron_lines = [l for l in res.stdout.splitlines() if script_path in l]
+        cron_summary = "; ".join([" ".join(l.split()[:5]) for l in cron_lines])
+        print(f"• Lịch tự động (Cron): ĐANG BẬT ({cron_summary})")
     else:
         print("• Lịch tự động (Cron): TẮT")
         
@@ -344,15 +356,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tự động kiểm tra và cập nhật kết quả Vietlott 5/35 sau mỗi kỳ")
     parser.add_argument("--watch", action="store_true", help="Chạy ngầm liên tục theo chu kỳ")
     parser.add_argument("--interval", type=int, default=1800, help="Khoảng thời gian kiểm tra lại (giây, mặc định 1800s = 30 phút)")
-    parser.add_argument("--install-cron", action="store_true", help="Cài đặt lịch tự động vào crontab của hệ thống")
-    parser.add_argument("--cron-minutes", type=int, default=30, help="Chu kỳ phút cho Cron job (mặc định 30 phút)")
+    parser.add_argument("--install-cron", action="store_true", help="Cài đặt lịch tự động vào crontab (mặc định sau giờ xổ số 13h và 21h)")
+    parser.add_argument("--cron-minutes", type=int, default=None, help="Chu kỳ phút cho Cron job (tùy chọn)")
+    parser.add_argument("--cron-schedule", type=str, default=None, help="Biểu thức cron tùy chỉnh (ví dụ: '15,30,45 13,21 * * *')")
     parser.add_argument("--remove-cron", action="store_true", help="Gỡ bỏ Cron job tự động")
     parser.add_argument("--status", action="store_true", help="Xem trạng thái dữ liệu và lịch cập nhật")
     
     args = parser.parse_args()
     
     if args.install_cron:
-        install_cron(args.cron_minutes)
+        install_cron(minutes=args.cron_minutes, schedule=args.cron_schedule)
     elif args.remove_cron:
         remove_cron()
     elif args.status:

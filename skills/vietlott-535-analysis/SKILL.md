@@ -90,7 +90,7 @@ Tất cả thao tác có thể thực hiện thông qua `./xstk.sh`:
 | `./xstk.sh update` | `auto_update.py` | Kiểm tra và tải các kỳ mới phát sinh |
 | `./xstk.sh plot` | `standardize_and_plot.py` | Chạy lại chuẩn hóa thống kê & làm mới 4 biểu đồ qua `math-mcp` |
 | `./xstk.sh scrape-all` | `scrape_vietlott_535.py` | Cào lại toàn bộ lịch sử từ kỳ 1 đến nay |
-| `./xstk.sh cron-on` | `auto_update.py --install-cron` | Bật tự động cập nhật ngầm định kỳ (mỗi 30 phút) |
+| `./xstk.sh cron-on` | `auto_update.py --install-cron` | Bật tự động cập nhật ngầm sau giờ xổ số 13h và 21h hàng ngày |
 | `./xstk.sh cron-off` | `auto_update.py --remove-cron` | Tắt Cron job |
 | `./xstk.sh watch` | `auto_update.py --watch` | Chạy loop theo dõi liên tục trong terminal |
 | `./xstk.sh qr <nums>` | `qr_filter.py` | Đánh giá bộ số theo Mahalanobis & Entropy (vd: `./xstk.sh qr 6 15 21 30 34 6`) |

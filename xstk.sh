@@ -38,9 +38,9 @@
 #            python3 auto_update.py
 #        + Xem trạng thái hiện tại (kỳ mới nhất, trạng thái Cron):
 #            python3 auto_update.py --status
-#        + Bật lịch tự động cập nhật qua Cron (mặc định mỗi 30 phút):
-#            python3 auto_update.py --install-cron
-#            python3 auto_update.py --install-cron --cron-minutes 15
+#        + Bật lịch tự động cập nhật qua Cron (mặc định sau giờ xổ số 13h và 21h):
+#            ./xstk.sh cron-on
+#            ./xstk.sh cron-on 15    (nếu muốn cập nhật định kỳ mỗi 15 phút)
 #        + Tắt lịch tự động cập nhật Cron:
 #            python3 auto_update.py --remove-cron
 #        + Chạy ngầm liên tục dạng daemon (không dùng cron):
@@ -71,7 +71,7 @@ show_help() {
     echo -e "  ${GREEN}update${NC}       : Kiểm tra và cập nhật kỳ mới ngay lập tức"
     echo -e "  ${GREEN}plot${NC}         : Chạy lại chuẩn hóa thống kê & vẽ lại 4 biểu đồ"
     echo -e "  ${GREEN}scrape-all${NC}   : Cào lại toàn bộ dữ liệu từ kỳ #00001 đến nay"
-    echo -e "  ${GREEN}cron-on${NC}      : Bật lịch tự động cập nhật mỗi 30 phút (qua Crontab)"
+    echo -e "  ${GREEN}cron-on${NC}      : Bật lịch tự động cập nhật sau 13h và 21h hàng ngày (hoặc mỗi N phút nếu có tham số)"
     echo -e "  ${GREEN}cron-off${NC}     : Tắt lịch tự động cập nhật Cron"
     echo -e "  ${GREEN}watch${NC}        : Chạy daemon theo dõi liên tục trong terminal"
     echo -e "  ${GREEN}logs${NC}         : Xem log theo thời gian thực (tail -f auto_update.log)"
@@ -108,9 +108,13 @@ case "$1" in
         python3 "$DIR/standardize_and_plot.py"
         ;;
     cron-on)
-        MINUTES="${2:-30}"
-        echo -e "${YELLOW}[*] Cài đặt Cron job cập nhật mỗi ${MINUTES} phút...${NC}"
-        python3 "$DIR/auto_update.py" --install-cron --cron-minutes "$MINUTES"
+        if [ -n "$2" ]; then
+            echo -e "${YELLOW}[*] Cài đặt Cron job cập nhật mỗi $2 phút...${NC}"
+            python3 "$DIR/auto_update.py" --install-cron --cron-minutes "$2"
+        else
+            echo -e "${YELLOW}[*] Cài đặt Cron job cập nhật tự động sau giờ xổ số (13h và 21h)...${NC}"
+            python3 "$DIR/auto_update.py" --install-cron
+        fi
         ;;
     cron-off)
         echo -e "${YELLOW}[*] Gỡ bỏ Cron job tự động...${NC}"

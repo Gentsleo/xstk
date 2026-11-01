@@ -98,7 +98,7 @@ lợi thế; độ phủ QR không phải độ chính xác dự báo một vé.
 # Kiểm tra và nạp kỳ mới 1 lần:
 ./xstk.sh update
 
-# Bật tự động cập nhật ngầm qua Cron (mỗi 30 phút):
+# Bật tự động cập nhật ngầm qua Cron (sau giờ xổ số 13h và 21h hàng ngày):
 ./xstk.sh cron-on
 ```
 
