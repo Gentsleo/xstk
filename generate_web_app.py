@@ -217,8 +217,11 @@ html_content = f"""<!DOCTYPE html>
             <button onclick="forceRefreshLatest()" title="Buộc làm mới xóa bộ nhớ đệm trên điện thoại" class="px-3 py-1.5 bg-brand-card hover:bg-slate-700 text-blue-400 border border-blue-500/30 rounded-full text-xs font-semibold flex items-center gap-1 active:scale-95 transition">
                 ⚡ Bản Mới
             </button>
-            <button onclick="openUpdateModal()" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5 shadow-lg">
-                🔄 Cập Nhật Kỳ Mới
+            <button id="btnHeaderSync" onclick="syncFromCloud(false)" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5 shadow-lg" title="Cập nhật kỳ mới nhất từ GitHub">
+                <span id="headerSyncSpinner" class="hidden">⏳</span> 🔄 Cập Nhật
+            </button>
+            <button onclick="openUpdateModal()" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5 shadow-lg" title="Nhập thủ công hoặc đồng bộ">
+                ✍️ Nhập Kỳ Mới
             </button>
             <a href="https://github.com/Gentsleo/xstk" target="_blank" class="px-3.5 py-2 bg-brand-border hover:bg-slate-700 text-gray-200 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5">
                 GitHub
@@ -781,13 +784,21 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
 
-        async function syncFromCloud() {{
-            const btn = document.getElementById('btnSyncCloud');
-            const spinner = document.getElementById('syncSpinner');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            showToast("Đang kết nối kho GitHub tải kỳ quay mới...");
-            showModalNotice("Đang kiểm tra dữ liệu từ đám mây GitHub...");
+        async function syncFromCloud(silent = false) {{
+            const btnModal = document.getElementById('btnSyncCloud');
+            const spinModal = document.getElementById('syncSpinner');
+            const btnHeader = document.getElementById('btnHeaderSync');
+            const spinHeader = document.getElementById('headerSyncSpinner');
+
+            if (btnModal) btnModal.disabled = true;
+            if (spinModal) spinModal.classList.remove('hidden');
+            if (btnHeader) btnHeader.disabled = true;
+            if (spinHeader) spinHeader.classList.remove('hidden');
+
+            if (!silent) {{
+                showToast("Đang kết nối kho GitHub tải kỳ quay mới...");
+                showModalNotice("Đang kiểm tra dữ liệu từ đám mây GitHub...");
+            }}
 
             try {{
                 const url = "https://raw.githubusercontent.com/Gentsleo/xstk/main/vietlott_535.json?t=" + Date.now();
@@ -811,31 +822,40 @@ html_content = f"""<!DOCTYPE html>
                             console.warn("localStorage quota/private warning:", e);
                         }}
                         updateAppViews();
-                        if (syncStorageOk) {{
-                            showToast(`🎉 Đã tải thành công ${{newOnes.length}} kỳ mới từ đám mây (đến kỳ #${{cloudDraws[cloudDraws.length-1].draw_code}})!`);
-                            closeUpdateModal();
-                        }} else {{
-                            const warnMsg = `⚠️ Đã tải ${{newOnes.length}} kỳ mới cho phiên này, nhưng bộ nhớ điện thoại đang chặn lưu lâu dài (chế độ ẩn danh). Dữ liệu sẽ mất khi đóng tab!`;
-                            showToast(warnMsg, true);
-                            showModalNotice(warnMsg, true);
+                        const successMsg = `🎉 Đã tải thành công ${{newOnes.length}} kỳ mới từ GitHub (đến kỳ #${{cloudDraws[cloudDraws.length-1].draw_code}})!`;
+                        showToast(successMsg);
+                        if (!silent) {{
+                            if (syncStorageOk) {{
+                                closeUpdateModal();
+                            }} else {{
+                                const warnMsg = `⚠️ Đã tải ${{newOnes.length}} kỳ mới cho phiên này, nhưng bộ nhớ điện thoại đang chặn lưu lâu dài (chế độ ẩn danh). Dữ liệu sẽ mất khi đóng tab!`;
+                                showToast(warnMsg, true);
+                                showModalNotice(warnMsg, true);
+                            }}
                         }}
                     }} else {{
-                        const latestCloud = cloudDraws[cloudDraws.length-1].draw_code;
-                        const msg = `Máy của bạn đã ở kỳ #${{DRAWS_DATA[0].draw_code}}, đám mây cũng là kỳ #${{latestCloud}}. Không có kỳ mới hơn.`;
-                        showToast(msg);
-                        showModalNotice(msg);
+                        if (!silent) {{
+                            const latestCloud = cloudDraws[cloudDraws.length-1].draw_code;
+                            const msg = `Dữ liệu đã là mới nhất (Kỳ #${{latestCloud}}). Không có kỳ mới hơn.`;
+                            showToast(msg);
+                            showModalNotice(msg);
+                        }}
                     }}
-                }} else {{
+                }} else if (!silent) {{
                     showToast("Dữ liệu từ đám mây không hợp lệ.", true);
                     showModalNotice("Dữ liệu từ đám mây không hợp lệ.", true);
                 }}
             }} catch(err) {{
-                const errMsg = "Lỗi đồng bộ đám mây: " + err.message;
-                showToast(errMsg, true);
-                showModalNotice(errMsg, true);
+                if (!silent) {{
+                    const errMsg = "Lỗi đồng bộ đám mây: " + err.message;
+                    showToast(errMsg, true);
+                    showModalNotice(errMsg, true);
+                }}
             }} finally {{
-                btn.disabled = false;
-                spinner.classList.add('hidden');
+                if (btnModal) btnModal.disabled = false;
+                if (spinModal) spinModal.classList.add('hidden');
+                if (btnHeader) btnHeader.disabled = false;
+                if (spinHeader) spinHeader.classList.add('hidden');
             }}
         }}
 
@@ -1291,6 +1311,10 @@ html_content = f"""<!DOCTYPE html>
         // Initialize App
         loadLocalStorageDraws();
         updateAppViews();
+        // Tự động kiểm tra và tải kỳ mới nhất từ GitHub khi vừa mở web
+        setTimeout(() => {{
+            syncFromCloud(true);
+        }}, 800);
     </script>
 </body>
 </html>
