@@ -38,7 +38,7 @@
 #            python3 auto_update.py
 #        + Xem trạng thái hiện tại (kỳ mới nhất, trạng thái Cron):
 #            python3 auto_update.py --status
-#        + Bật lịch tự động cập nhật qua Cron (mặc định sau giờ xổ số 13h và 21h):
+#    - Bật lịch tự động cập nhật qua Cron (mặc định sau giờ xổ số 13h và 21h):
 #            ./xstk.sh cron-on
 #            ./xstk.sh cron-on 15    (nếu muốn cập nhật định kỳ mỗi 15 phút)
 #        + Tắt lịch tự động cập nhật Cron:

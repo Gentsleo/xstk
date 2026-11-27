@@ -1,0 +1,52 @@
+"""Behavioral checks for the official detail-page update fallback."""
+
+import unittest
+
+import auto_update as updater
+
+
+DETAIL_PAGE = """
+<div class="chitietketqua_title">
+  <h5>Kỳ quay thưởng <b>#01033</b> ngày <b>27/11/2026</b></h5>
+</div>
+<div class="day_so_ket_qua_v2">
+  <span class="bong_tron small">03</span>
+  <span class="bong_tron small">12</span>
+  <span class="bong_tron small">18</span>
+  <span class="bong_tron small">28</span>
+  <span class="bong_tron small">33</span>
+  <span class="bong_tron small no-margin-right active">07</span>
+</div>
+"""
+
+
+class DetailPageParsingTests(unittest.TestCase):
+    def test_parses_a_matching_official_draw(self):
+        self.assertEqual(
+            updater.parse_detail_draw_page(DETAIL_PAGE, 1033),
+            {
+                "draw_id": 1033,
+                "draw_code": "01033",
+                "date": "27/11/2026",
+                "num1": 3,
+                "num2": 12,
+                "num3": 18,
+                "num4": 28,
+                "num5": 33,
+                "special": 7,
+                "numbers_str": "03 12 18 28 33 | 07",
+            },
+        )
+
+    def test_treats_explicitly_missing_draw_as_end_of_results(self):
+        self.assertIsNone(
+            updater.parse_detail_draw_page("<body>Không tìm thấy kết quả [01034]</body>", 1034)
+        )
+
+    def test_rejects_a_page_for_the_wrong_draw(self):
+        with self.assertRaisesRegex(ValueError, "expected #01032"):
+            updater.parse_detail_draw_page(DETAIL_PAGE, 1032)
+
+
+if __name__ == "__main__":
+    unittest.main()

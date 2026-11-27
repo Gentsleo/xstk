@@ -17,6 +17,10 @@ CSV_PATH = os.path.join(BASE_DIR, "vietlott_535.csv")
 JSON_PATH = os.path.join(BASE_DIR, "vietlott_535.json")
 LOG_PATH = os.path.join(BASE_DIR, "auto_update.log")
 
+DETAIL_RESULT_URL = "https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/535?id={draw_code}&nocatche=1"
+MAX_DETAIL_LOOKAHEAD = 100
+MAX_LISTING_PAGES = 11
+
 def log(msg):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     formatted = f"[{now}] {msg}"
@@ -95,6 +99,76 @@ def fetch_page_draws(opener, key, render_info, arr_numbers, page_idx):
                 })
     return rows
 
+def parse_detail_draw_page(html, expected_draw_id):
+    soup = BeautifulSoup(html, "html.parser")
+    title = soup.select_one(".chitietketqua_title h5")
+    if title is None:
+        if "Không tìm thấy kết quả" in soup.get_text(" ", strip=True):
+            return None
+        raise ValueError("Official detail page does not contain a draw result")
+
+    match = re.search(
+        r"#\s*(\d+)\s+ngày\s+(\d{2}/\d{2}/\d{4})",
+        title.get_text(" ", strip=True),
+    )
+    if not match:
+        raise ValueError("Could not parse draw code and date from official detail page")
+
+    draw_id = int(match.group(1))
+    if draw_id != expected_draw_id:
+        raise ValueError(f"Official detail page returned #{draw_id:05d}, expected #{expected_draw_id:05d}")
+
+    nums = [span.get_text(strip=True) for span in soup.select(".day_so_ket_qua_v2 .bong_tron")]
+    if len(nums) != 6 or any(not re.fullmatch(r"\d{2}", num) for num in nums):
+        raise ValueError(f"Official detail page has invalid balls for #{draw_id:05d}")
+
+    return {
+        "draw_id": draw_id,
+        "draw_code": f"{draw_id:05d}",
+        "date": match.group(2),
+        "num1": int(nums[0]),
+        "num2": int(nums[1]),
+        "num3": int(nums[2]),
+        "num4": int(nums[3]),
+        "num5": int(nums[4]),
+        "special": int(nums[5]),
+        "numbers_str": f"{nums[0]} {nums[1]} {nums[2]} {nums[3]} {nums[4]} | {nums[5]}",
+    }
+
+def fetch_draw_detail(opener, draw_id):
+    url = DETAIL_RESULT_URL.format(draw_code=f"{draw_id:05d}")
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+    )
+    html = opener.open(req, timeout=20).read().decode("utf-8")
+    return parse_detail_draw_page(html, draw_id)
+
+def fetch_new_draws_from_detail_pages(local_max):
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+    new_draws = []
+    for draw_id in range(local_max + 1, local_max + MAX_DETAIL_LOOKAHEAD + 1):
+        draw = fetch_draw_detail(opener, draw_id)
+        if draw is None:
+            return new_draws
+        new_draws.append(draw)
+    raise RuntimeError(f"More than {MAX_DETAIL_LOOKAHEAD} new draws require a full resync")
+
+def fetch_new_draws_from_listing(opener, key, render_info, local_max):
+    arr_numbers = [[""] * 35 for _ in range(5)]
+    new_draws = []
+    for page in range(MAX_LISTING_PAGES):
+        page_rows = fetch_page_draws(opener, key, render_info, arr_numbers, page)
+        if not page_rows:
+            if page == 0:
+                raise ValueError("Official listing page did not contain any draws")
+            return new_draws
+        for draw in page_rows:
+            if draw["draw_id"] <= local_max:
+                return new_draws
+            new_draws.append(draw)
+    raise RuntimeError(f"More than {MAX_LISTING_PAGES} result pages require a detail-page fallback")
+
 def sync_exports(conn):
     cur = conn.cursor()
     cur.execute("SELECT draw_id, draw_code, date, num1, num2, num3, num4, num5, special, numbers_str FROM draws ORDER BY draw_id ASC")
@@ -151,40 +225,21 @@ def update_once():
     log(f"[*] Kiểm tra cập nhật... Kỳ hiện tại trong máy: #{local_max:05d}")
     try:
         opener, key, render_info = get_session_and_key()
-    except Exception as e:
-        log(f"[!] Không thể kết nối với Vietlott: {e}")
-        conn.close()
-        return False
-    arr_numbers = [[""] * 35 for _ in range(5)]
-    new_draws = []
-    page = 0
-    done = False
-    
-    while not done:
+        new_draws = fetch_new_draws_from_listing(opener, key, render_info, local_max)
+    except Exception as primary_error:
+        log(f"[!] Nguồn danh sách Vietlott không khả dụng: {primary_error}. Đang thử trang kết quả chi tiết...")
         try:
-            page_rows = fetch_page_draws(opener, key, render_info, arr_numbers, page)
-        except Exception as e:
-            log(f"[!] Lỗi khi lấy trang {page}: {e}")
-            break
-            
-        if not page_rows:
-            break
-            
-        for d in page_rows:
-            if d["draw_id"] <= local_max:
-                done = True
-                break
-            new_draws.append(d)
-            
-        page += 1
-        if page > 10:  # Safety cap for incremental check
-            break
-            
+            new_draws = fetch_new_draws_from_detail_pages(local_max)
+        except Exception as fallback_error:
+            log(f"[!] Không thể lấy dữ liệu Vietlott: {fallback_error}")
+            conn.close()
+            return False
+
     if not new_draws:
         log(f"[-] Dữ liệu đã là mới nhất (Kỳ #{local_max:05d}). Không có kỳ mới.")
         conn.close()
         publish_data_updates()
-        return False
+        return None
     log(f"[+] Phát hiện {len(new_draws)} kỳ quay mới trên Vietlott!")
     sorted_new = sorted(new_draws, key=lambda x: x["draw_id"])
     for d in sorted_new:
@@ -373,4 +428,6 @@ if __name__ == "__main__":
     elif args.watch:
         watch_loop(args.interval)
     else:
-        update_once()
+        success = update_once()
+        if success is False:
+            sys.exit(1)

@@ -98,9 +98,12 @@ lợi thế; độ phủ QR không phải độ chính xác dự báo một vé.
 # Kiểm tra và nạp kỳ mới 1 lần:
 ./xstk.sh update
 
-# Bật tự động cập nhật ngầm qua Cron (sau giờ xổ số 13h và 21h hàng ngày):
+# Tùy chọn: bật thêm Cron cục bộ để kiểm tra từ máy này:
 ./xstk.sh cron-on
 ```
+
+GitHub Actions là tiến trình cập nhật tự động chính: chạy sau các kỳ mở thưởng
+và không phụ thuộc máy cá nhân hay WSL. `cron-on` chỉ là bản dự phòng cục bộ.
 
 ### 7. Phòng thí nghiệm RNG/QR
 
