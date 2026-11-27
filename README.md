@@ -104,6 +104,8 @@ lợi thế; độ phủ QR không phải độ chính xác dự báo một vé.
 
 GitHub Actions là tiến trình cập nhật tự động chính: chạy sau các kỳ mở thưởng
 và không phụ thuộc máy cá nhân hay WSL. `cron-on` chỉ là bản dự phòng cục bộ.
+Nếu cả danh sách và trang chi tiết chính thức đều lỗi, workflow thất bại và ghi
+nguyên nhân của cả hai nguồn vào annotation; lỗi nguồn không được coi là không có kỳ mới.
 
 ### 7. Phòng thí nghiệm RNG/QR
 

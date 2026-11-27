@@ -31,6 +31,13 @@ def log(msg):
     except Exception:
         pass
 
+def report_github_action_error(message):
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    escaped = str(message).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    print(f"::error title=Official results unavailable::{escaped}")
+
+
 def get_session_and_key():
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
     url = "https://vietlott.vn/vi/trung-thuong/ket-qua-trung-thuong/winning-number-535"
@@ -232,6 +239,10 @@ def update_once():
             new_draws = fetch_new_draws_from_detail_pages(local_max)
         except Exception as fallback_error:
             log(f"[!] Không thể lấy dữ liệu Vietlott: {fallback_error}")
+            report_github_action_error(
+                "Official Vietlott results unavailable. "
+                f"Listing error: {primary_error}; detail-page error: {fallback_error}"
+            )
             conn.close()
             return False
 
@@ -428,6 +439,10 @@ if __name__ == "__main__":
     elif args.watch:
         watch_loop(args.interval)
     else:
-        success = update_once()
+        try:
+            success = update_once()
+        except Exception as update_error:
+            report_github_action_error(f"Unhandled updater exception: {update_error}")
+            raise
         if success is False:
             sys.exit(1)

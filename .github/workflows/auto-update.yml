@@ -40,9 +40,10 @@ jobs:
           pip install beautifulsoup4
 
       - name: Run Auto Update
-        run: |
-          python auto_update.py
-          python generate_web_app.py
+        run: python auto_update.py
+
+      - name: Generate Web App
+        run: python generate_web_app.py
 
       - name: Commit and push if new draws found
         run: |

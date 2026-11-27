@@ -1,6 +1,9 @@
 """Behavioral checks for the official detail-page update fallback."""
 
+import io
 import unittest
+from contextlib import redirect_stdout
+from unittest.mock import patch
 
 import auto_update as updater
 
@@ -46,6 +49,28 @@ class DetailPageParsingTests(unittest.TestCase):
     def test_rejects_a_page_for_the_wrong_draw(self):
         with self.assertRaisesRegex(ValueError, "expected #01032"):
             updater.parse_detail_draw_page(DETAIL_PAGE, 1032)
+
+
+
+class GitHubActionErrorTests(unittest.TestCase):
+    def test_emits_an_escaped_github_error_annotation(self):
+        output = io.StringIO()
+        with patch.dict(updater.os.environ, {"GITHUB_ACTIONS": "true"}):
+            with redirect_stdout(output):
+                updater.report_github_action_error("listing 403%\r\nfallback")
+
+        self.assertEqual(
+            output.getvalue(),
+            "::error title=Official results unavailable::listing 403%25%0D%0Afallback\n",
+        )
+
+    def test_is_silent_outside_github_actions(self):
+        output = io.StringIO()
+        with patch.dict(updater.os.environ, {"GITHUB_ACTIONS": "false"}):
+            with redirect_stdout(output):
+                updater.report_github_action_error("source unavailable")
+
+        self.assertEqual(output.getvalue(), "")
 
 
 if __name__ == "__main__":
